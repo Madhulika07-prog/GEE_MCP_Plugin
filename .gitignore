@@ -1,0 +1,34 @@
+# Secrets / environment
+.env
+.env.local
+.env.*.local
+*-credentials.json
+*-key.json
+*service-account*.json
+*service_account*.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Editors / IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local-only generated artifacts
+# (Uncomment if you don't want EE thumbnail previews in the repo)
+# docs/figures/
