@@ -1,0 +1,1257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GEE_MCP_Plugin — Setup Guide</title>
+<style>
+@page {
+    size: A4;
+    margin: 1.5cm 1.8cm 2cm 1.8cm;
+    @frame footer {
+        -pdf-frame-content: footerContent;
+        bottom: 1cm;
+        margin-left: 1.8cm;
+        margin-right: 1.8cm;
+        height: 1cm;
+    }
+}
+body {
+    font-family: "Helvetica", "Arial", sans-serif;
+    font-size: 10pt;
+    line-height: 1.5;
+    color: #1f2937;
+}
+h1 {
+    color: #1d4ed8;
+    border-bottom: 2px solid #1d4ed8;
+    padding-bottom: 0.2em;
+    margin-top: 1em;
+    font-size: 22pt;
+    page-break-after: avoid;
+}
+h2 {
+    color: #1e40af;
+    border-bottom: 1px solid #cbd5e1;
+    padding-bottom: 0.15em;
+    margin-top: 1.4em;
+    font-size: 16pt;
+    page-break-after: avoid;
+    page-break-before: auto;
+}
+h3 {
+    color: #1e3a8a;
+    margin-top: 1.1em;
+    font-size: 13pt;
+    page-break-after: avoid;
+}
+h4 {
+    color: #1e3a8a;
+    font-size: 11pt;
+    margin-top: 1em;
+    page-break-after: avoid;
+}
+p, li { margin: 0.4em 0; }
+ul, ol { margin: 0.4em 0 0.4em 1.4em; padding: 0; }
+li { margin: 0.2em 0; }
+a { color: #1d4ed8; text-decoration: none; }
+strong { font-weight: bold; }
+em { font-style: italic; }
+code {
+    font-family: "Courier New", "Consolas", monospace;
+    font-size: 9pt;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 2px;
+    padding: 1px 3px;
+}
+pre {
+    font-family: "Courier New", "Consolas", monospace;
+    font-size: 8.5pt;
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 8px 10px;
+    border-radius: 3px;
+    margin: 0.6em 0;
+    page-break-inside: avoid;
+}
+pre code {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    color: inherit;
+    font-size: 8.5pt;
+}
+blockquote {
+    border-left: 3px solid #38bdf8;
+    background: #f0f9ff;
+    color: #0c4a6e;
+    padding: 6px 10px;
+    margin: 0.6em 0;
+    font-style: italic;
+}
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0.6em 0;
+    font-size: 9pt;
+    page-break-inside: avoid;
+}
+th, td {
+    border: 1px solid #cbd5e1;
+    padding: 5px 8px;
+    text-align: left;
+    vertical-align: top;
+}
+th {
+    background: #e0f2fe;
+    color: #0c4a6e;
+    font-weight: bold;
+}
+tr:nth-child(even) td { background: #f8fafc; }
+hr {
+    border: 0;
+    border-top: 1px solid #cbd5e1;
+    margin: 1.2em 0;
+}
+.toc { background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 14px; margin: 1em 0; }
+.toc ol { margin: 0.2em 0 0.2em 1.4em; }
+.footer { font-size: 8pt; color: #64748b; text-align: center; }
+
+body { max-width: 880px; margin: 2em auto; padding: 0 1em; font-size: 11pt; }
+</style>
+</head>
+<body>
+<h1 id="gee_mcp_plugin-complete-setup-architecture-guide">GEE_MCP_Plugin — Complete Setup &amp; Architecture Guide</h1>
+<blockquote>
+<p>Natural-language control of Google Earth Engine, end to end. This document covers what was built, how it was built, every command that was run, and how to reproduce the whole stack on a fresh machine without AI assistance.</p>
+</blockquote>
+<p><strong>Project repository:</strong> https://github.com/Madhulika07-prog/GEE_MCP_Plugin
+<strong>Author:</strong> Madhulika Smriti
+<strong>Generated:</strong> 2026-05-29</p>
+<hr />
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#1-what-this-is">What This Is</a></li>
+<li><a href="#2-architecture-at-a-glance">Architecture at a Glance</a></li>
+<li><a href="#3-the-development-workflow">The Development Workflow</a></li>
+<li><a href="#4-part-1-the-mcp-server">Part 1: The MCP Server</a></li>
+<li><a href="#5-part-2-the-chat-map-web-app">Part 2: The Chat-Map Web App</a></li>
+<li><a href="#6-part-3-vector-upload-exports-asset-browsing">Part 3: Vector Upload, Exports, Asset Browsing</a></li>
+<li><a href="#7-part-4-multi-provider-llm-layer">Part 4: Multi-Provider LLM Layer</a></li>
+<li><a href="#8-running-everything-commands-reference">Running Everything (Commands Reference)</a></li>
+<li><a href="#9-reproducing-on-a-fresh-machine--without-ai">Reproducing on a Fresh Machine — Without AI</a></li>
+<li><a href="#10-models--api-keys-reference">Models &amp; API Keys Reference</a></li>
+<li><a href="#11-project-file-reference">Project File Reference</a></li>
+<li><a href="#12-troubleshooting">Troubleshooting</a></li>
+<li><a href="#13-extending-the-system">Extending the System</a></li>
+<li><a href="#14-appendix-complete-command-history">Appendix: Complete Command History</a></li>
+</ol>
+<hr />
+<h2 id="1-what-this-is">1. What This Is</h2>
+<p>Two independent but related ways to drive Google Earth Engine in plain English:</p>
+<p><strong>(a) An MCP server (<code>server.py</code>)</strong> that exposes Earth Engine as a set of tools to any client that speaks the Model Context Protocol — primarily Claude Code (the CLI / VSCode native extension) and Claude Desktop. When you ask Claude <em>"compute NDVI for Bangalore in May 2024"</em>, Claude calls our MCP tools instead of writing Python by hand; the server executes the call against your authenticated Earth Engine account and returns the result.</p>
+<p><strong>(b) A standalone chat-map web app (<code>webapp/</code>)</strong> — a single-page browser app with a chat panel on the left and a live Leaflet map on the right. Talk to the app, see EE layers appear on the map as live tiles. Built on top of the same EE tool functions, plus:</p>
+<ul>
+<li>A <strong>multi-provider LLM layer</strong> so you can switch between Gemini (free), Claude, GPT-4o, Llama-on-Groq (free), Mistral, and OpenRouter mid-conversation</li>
+<li><strong>Vector data upload</strong> — drag in a GeoJSON or a zipped Shapefile and it becomes a usable AOI immediately, with automatic reprojection to WGS84</li>
+<li><strong>Per-layer exports</strong> — Drive task or short-lived direct GeoTIFF download</li>
+<li><strong>Asset browsing</strong> — list and visualize your own Earth Engine assets</li>
+</ul>
+<p>The web app is single-user and runs on <code>localhost:8765</code>. It uses your own EE auth credential and your own LLM API key. No data flows through any third-party server we control.</p>
+<hr />
+<h2 id="2-architecture-at-a-glance">2. Architecture at a Glance</h2>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code>                ┌──────────────────────────────────────────────────────┐
+                │  Browser  (Leaflet map + chat panel + upload modal) │
+                │  Layers panel, model dropdown, per-layer exports    │
+                └─────────────────┬────────────────────────────────────┘
+                                  │  HTTP: POST /chat, /upload-asset,
+                                  │        /export-layer; GET /models, /health
+                                  ▼
+                ┌──────────────────────────────────────────────────────┐
+                │  FastAPI backend (webapp/app.py)                     │
+                │  • Per-session chat state                            │
+                │  • Routes user messages through llm_providers.py     │
+                │  • Executes tool calls via ee_tools.py               │
+                └─────────────────┬────────────────────────────────────┘
+                                  │ python imports
+              ┌───────────────────┴───────────────────────┐
+              ▼                                           ▼
+   ┌─────────────────────┐                ┌─────────────────────────┐
+   │ llm_providers.py    │                │ ee_tools.py             │
+   │ • Internal history  │                │ • AOI resolution        │
+   │   format            │                │ • Landsat/Sentinel-2    │
+   │ • Gemini adapter    │                │   composites + indices  │
+   │ • Anthropic adapter │                │ • Asset CRUD            │
+   │ • OpenAI-compatible │                │ • Drive / GeoTIFF       │
+   │   (OpenAI, Groq,    │                │   exports               │
+   │   Mistral, OR)      │                │ • Shapefile/GeoJSON     │
+   └─────────────────────┘                │   upload                │
+              │                            └─────────────────────────┘
+              │ HTTPS to provider APIs                  │
+              ▼                                         │ Earth Engine
+   ┌─────────────────────┐                              │ Python API
+   │ Gemini / Claude /   │                              ▼
+   │ GPT / Groq Llama /  │                  ┌──────────────────────┐
+   │ Mistral / OpenRouter│                  │ Google Earth Engine  │
+   └─────────────────────┘                  │ (your account,       │
+                                            │  your auth)          │
+                                            └──────────────────────┘
+
+────────────────────────────────────────────────────────────────────────
+INDEPENDENTLY, server.py exposes the same EE capabilities to Claude
+Code / Claude Desktop over the Model Context Protocol (stdio transport):
+
+   Claude Code  ──stdio──▶  server.py  ──▶  Earth Engine Python API
+   Claude Desktop                     ▶
+────────────────────────────────────────────────────────────────────────
+</code></pre></div>
+
+<p><strong>The two surfaces share Earth Engine but not the LLM.</strong> When you talk to the web app, the LLM is whatever you pick in the dropdown. When you talk to Claude Code with the MCP enabled, the LLM is Claude itself — and the MCP gives it the EE tools.</p>
+<hr />
+<h2 id="3-the-development-workflow">3. The Development Workflow</h2>
+<p>This project was built collaboratively in a Claude Code session running inside the VS Code extension. Understanding that workflow helps you understand what's already on your machine vs what you need to install when reproducing elsewhere.</p>
+<h3 id="how-the-assistant-accesses-the-terminal">How the assistant accesses the terminal</h3>
+<p>Claude Code (the VSCode extension at <code>code.visualstudio.com/extensions</code> → install "Claude Code") gives an in-editor AI assistant tools to:</p>
+<ul>
+<li><strong>Read and write files</strong> on the workstation</li>
+<li><strong>Run shell commands</strong> via a sandboxed <code>Bash</code> tool (Git Bash on Windows, <code>bash</code> elsewhere)</li>
+<li><strong>Run PowerShell</strong> for Windows-specific operations</li>
+<li><strong>Edit existing files</strong> through a structured Edit tool that requires a prior Read</li>
+<li><strong>Search the codebase</strong> via <code>Glob</code> (filename patterns) and <code>Grep</code> (content / regex)</li>
+<li><strong>Make HTTP requests</strong> to URLs (used for fetching documentation)</li>
+<li><strong>Launch sub-agents</strong> for parallel exploration</li>
+</ul>
+<p>Every action runs <em>on the user's machine</em>. There is no remote build server. When the assistant says "running <code>python -m pip install x</code>", that pip command literally executes in the Windows terminal on the user's PC.</p>
+<p>The user sees the commands and their output streamed into the chat. Many actions need explicit permission ("you're about to write to settings.json — allow?"). Risky actions (git force-push, <code>rm -rf</code>, etc.) require explicit confirmation in the user-facing chat.</p>
+<h3 id="how-a-request-gets-executed">How a request gets executed</h3>
+<p>A request like <em>"add a chat-map web app"</em> triggers, in order:</p>
+<ol>
+<li>The assistant plans the work (often using a <code>TodoWrite</code> task list to track progress)</li>
+<li>It asks clarifying questions where the answer materially changes the build</li>
+<li>It calls the right tool — <code>Write</code> to create a new file, <code>Edit</code> to modify, <code>Bash</code> to run a shell command, etc.</li>
+<li>It tests its work as it goes — <code>python -c "import x"</code> to check imports, <code>curl localhost:8765/health</code> to confirm an endpoint</li>
+<li>It iterates if a step fails</li>
+</ol>
+<p>This guide captures the result. The <em>Appendix: Complete Command History</em> at the end of this document lists every shell command that was run, in chronological order, so you can re-run the same sequence by hand.</p>
+<hr />
+<h2 id="4-part-1-the-mcp-server">4. Part 1: The MCP Server</h2>
+<h3 id="41-what-is-mcp">4.1 What is MCP?</h3>
+<p>The Model Context Protocol (MCP) is an open standard from Anthropic for exposing tools, data, and prompts to LLM-powered clients. An MCP server is a small program that advertises a set of tools (each with a name, a description, and a JSON-schema for its arguments). A client like Claude Code spawns the server as a subprocess, communicates with it over stdio (newline-delimited JSON-RPC), and lets the LLM call any advertised tool.</p>
+<p>For our purposes, MCP turns "Earth Engine" into something Claude can hold in its head as a finite list of capabilities — <code>search_image_collection</code>, <code>compute_index</code>, <code>export_image_to_drive</code>, etc. — instead of having to write Python from scratch each time.</p>
+<h3 id="42-installing-python-and-the-ee-library">4.2 Installing Python and the EE library</h3>
+<p>The host machine for this build was Windows 11 with Python 3.14 installed at <code>C:\Python314\python.exe</code>. Anything newer than Python 3.10 should work.</p>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code><span style="color: #60A0B0; font-style: italic"># Verify Python</span>
+python --version
+<span style="color: #60A0B0; font-style: italic"># Python 3.14.0</span>
+
+<span style="color: #60A0B0; font-style: italic"># Install the EE Python API and the MCP SDK</span>
+python -m pip install --upgrade earthengine-api mcp python-dotenv
+</code></pre></div>
+
+<p>After this you'll see scripts installed at <code>%APPDATA%\Python\Python314\Scripts\</code> (Windows) or <code>~/.local/bin/</code> (macOS/Linux). The two relevant scripts are <code>earthengine</code> (CLI for auth and asset management) and <code>mcp</code> (the SDK's command runner).</p>
+<h3 id="43-authenticating-to-earth-engine">4.3 Authenticating to Earth Engine</h3>
+<p>Earth Engine requires a Google account and a registered Cloud project. Sign up at https://signup.earthengine.google.com if you haven't.</p>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code><span style="color: #60A0B0; font-style: italic"># Opens a browser for OAuth — sign in with the Google account that owns</span>
+<span style="color: #60A0B0; font-style: italic"># your EE project. The refresh token gets saved at:</span>
+<span style="color: #60A0B0; font-style: italic">#   Windows:  %USERPROFILE%\.config\earthengine\credentials</span>
+<span style="color: #60A0B0; font-style: italic">#   Mac/Linux: ~/.config/earthengine/credentials</span>
+&amp; <span style="color: #4070A0">&quot;$env:APPDATA\Python\Python314\Scripts\earthengine.exe&quot;</span> authenticate
+</code></pre></div>
+
+<p>The MCP server reads that credential the same way any EE Python script does.</p>
+<h3 id="44-the-mcp-server-itself">4.4 The MCP server itself</h3>
+<p><code>server.py</code> is built on the Python MCP SDK's <code>FastMCP</code> helper, which lets you declare each tool with a decorator. Auth initialization is lazy — the server doesn't connect to EE until the first tool call, so import-time errors don't block the client from starting.</p>
+<p>Key parts:</p>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code><span style="color: #60A0B0; font-style: italic"># Load the .env that sits next to this file (EE_PROJECT, optional service-account key)</span>
+load_dotenv(Path(<span style="color: #BB60D5">__file__</span>)<span style="color: #666">.</span>with_name(<span style="color: #4070A0">&quot;.env&quot;</span>))
+
+EE_PROJECT <span style="color: #666">=</span> os<span style="color: #666">.</span>environ<span style="color: #666">.</span>get(<span style="color: #4070A0">&quot;EE_PROJECT&quot;</span>)
+EE_SERVICE_ACCOUNT_KEY <span style="color: #666">=</span> os<span style="color: #666">.</span>environ<span style="color: #666">.</span>get(<span style="color: #4070A0">&quot;EE_SERVICE_ACCOUNT_KEY&quot;</span>)
+
+mcp <span style="color: #666">=</span> FastMCP(<span style="color: #4070A0">&quot;earth-engine&quot;</span>)
+
+<span style="color: #007020; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #06287E">_ensure_ee</span>() <span style="color: #666">-&gt;</span> <span style="color: #007020; font-weight: bold">None</span>:
+<span style="color: #BBB">    </span><span style="color: #4070A0; font-style: italic">&quot;&quot;&quot;Lazy EE.Initialize() on first tool call.&quot;&quot;&quot;</span>
+    <span style="color: #007020; font-weight: bold">global</span> _initialized
+    <span style="color: #007020; font-weight: bold">if</span> _initialized:
+        <span style="color: #007020; font-weight: bold">return</span>
+    <span style="color: #007020; font-weight: bold">if</span> EE_SERVICE_ACCOUNT_KEY:
+        <span style="color: #60A0B0; font-style: italic"># Headless: use a service account JSON key from disk</span>
+        sa_email <span style="color: #666">=</span> json<span style="color: #666">.</span>load(<span style="color: #007020">open</span>(EE_SERVICE_ACCOUNT_KEY))[<span style="color: #4070A0">&quot;client_email&quot;</span>]
+        ee<span style="color: #666">.</span>Initialize(ee<span style="color: #666">.</span>ServiceAccountCredentials(sa_email, EE_SERVICE_ACCOUNT_KEY),
+                      project<span style="color: #666">=</span>EE_PROJECT)
+    <span style="color: #007020; font-weight: bold">else</span>:
+        <span style="color: #60A0B0; font-style: italic"># User OAuth from `earthengine authenticate`</span>
+        ee<span style="color: #666">.</span>Initialize(project<span style="color: #666">=</span>EE_PROJECT)
+    _initialized <span style="color: #666">=</span> <span style="color: #007020; font-weight: bold">True</span>
+
+<span style="color: #555; font-weight: bold">@mcp</span><span style="color: #666">.</span>tool()
+<span style="color: #007020; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #06287E">authenticate_status</span>() <span style="color: #666">-&gt;</span> <span style="color: #007020">dict</span>:
+<span style="color: #BBB">    </span><span style="color: #4070A0; font-style: italic">&quot;&quot;&quot;Report whether EE is reachable and which project/credential is in use.&quot;&quot;&quot;</span>
+    _ensure_ee()
+    _ <span style="color: #666">=</span> ee<span style="color: #666">.</span>Number(<span style="color: #40A070">1</span>)<span style="color: #666">.</span>getInfo()  <span style="color: #60A0B0; font-style: italic"># tiny round-trip</span>
+    <span style="color: #007020; font-weight: bold">return</span> {<span style="color: #4070A0">&quot;ok&quot;</span>: <span style="color: #007020; font-weight: bold">True</span>, <span style="color: #4070A0">&quot;project&quot;</span>: EE_PROJECT, <span style="color: #666">...</span>}
+</code></pre></div>
+
+<p>The server registers <strong>13 tools</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>authenticate_status</code></td>
+<td>Sanity check — confirms EE is reachable</td>
+</tr>
+<tr>
+<td><code>search_image_collection</code></td>
+<td>Find scenes in a date range over an AOI</td>
+</tr>
+<tr>
+<td><code>image_metadata</code></td>
+<td>Bands, date, footprint, properties of a single image</td>
+</tr>
+<tr>
+<td><code>compute_index</code></td>
+<td>NDVI / NDWI / NBR / EVI over an AOI/date range</td>
+</tr>
+<tr>
+<td><code>get_thumbnail_url</code></td>
+<td>Quick PNG preview without a full export</td>
+</tr>
+<tr>
+<td><code>export_image_to_drive</code></td>
+<td>Start an Earth Engine → Drive export task</td>
+</tr>
+<tr>
+<td><code>export_image_to_gcs</code></td>
+<td>Start an EE → Cloud Storage export task</td>
+</tr>
+<tr>
+<td><code>get_download_url</code></td>
+<td>Short-lived direct GeoTIFF link (~32 MB cap)</td>
+</tr>
+<tr>
+<td><code>list_tasks</code></td>
+<td>Recent export tasks</td>
+</tr>
+<tr>
+<td><code>list_assets</code></td>
+<td>Browse your EE asset folders</td>
+</tr>
+<tr>
+<td><code>describe_asset</code></td>
+<td>Type, owner, properties of one asset</td>
+</tr>
+<tr>
+<td><code>delete_asset</code></td>
+<td>Gated by <code>confirm=True</code> for safety</td>
+</tr>
+<tr>
+<td><code>run_ee_code</code></td>
+<td>Generic escape hatch — execute arbitrary Python with <code>ee</code> available</td>
+</tr>
+</tbody>
+</table>
+<h3 id="45-configuring-claude-code-to-use-the-mcp">4.5 Configuring Claude Code to use the MCP</h3>
+<p>The Claude Code VSCode extension reads MCP server configuration from <code>~/.claude.json</code> (not <code>~/.claude/settings.json</code> — that's a separate file for non-MCP settings).</p>
+<p>Add this to your <code>~/.claude.json</code> (typically <code>C:\Users\&lt;you&gt;\.claude.json</code> on Windows):</p>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code>{
+<span style="color: #BBB">  </span><span style="color: #062873; font-weight: bold">&quot;mcpServers&quot;</span>:<span style="color: #BBB"> </span>{
+<span style="color: #BBB">    </span><span style="color: #062873; font-weight: bold">&quot;earth-engine&quot;</span>:<span style="color: #BBB"> </span>{
+<span style="color: #BBB">      </span><span style="color: #062873; font-weight: bold">&quot;type&quot;</span>:<span style="color: #BBB"> </span><span style="color: #4070A0">&quot;stdio&quot;</span>,
+<span style="color: #BBB">      </span><span style="color: #062873; font-weight: bold">&quot;command&quot;</span>:<span style="color: #BBB"> </span><span style="color: #4070A0">&quot;C:\\Python314\\python.exe&quot;</span>,
+<span style="color: #BBB">      </span><span style="color: #062873; font-weight: bold">&quot;args&quot;</span>:<span style="color: #BBB"> </span>[<span style="color: #4070A0">&quot;C:\\Users\\&lt;you&gt;\\gee-mcp\\server.py&quot;</span>]
+<span style="color: #BBB">    </span>}
+<span style="color: #BBB">  </span>}
+}
+</code></pre></div>
+
+<p>Then reload the VS Code window (Command Palette → "Developer: Reload Window"). The MCP server gets started by Claude Code automatically; you don't need to launch it yourself.</p>
+<blockquote>
+<p>⚠️ <strong>Common pitfall:</strong> putting <code>mcpServers</code> in <code>~/.claude/settings.json</code> instead of <code>~/.claude.json</code> will silently fail — Claude Code looks for MCP servers in the second file, not the first.</p>
+</blockquote>
+<h3 id="46-configuring-claude-desktop">4.6 Configuring Claude Desktop</h3>
+<p>Claude Desktop reads MCP from <code>claude_desktop_config.json</code>. On Windows this lives at <code>%APPDATA%\Claude\claude_desktop_config.json</code>. The schema is identical:</p>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code>{
+<span style="color: #BBB">  </span><span style="color: #062873; font-weight: bold">&quot;mcpServers&quot;</span>:<span style="color: #BBB"> </span>{
+<span style="color: #BBB">    </span><span style="color: #062873; font-weight: bold">&quot;earth-engine&quot;</span>:<span style="color: #BBB"> </span>{
+<span style="color: #BBB">      </span><span style="color: #062873; font-weight: bold">&quot;command&quot;</span>:<span style="color: #BBB"> </span><span style="color: #4070A0">&quot;C:\\Python314\\python.exe&quot;</span>,
+<span style="color: #BBB">      </span><span style="color: #062873; font-weight: bold">&quot;args&quot;</span>:<span style="color: #BBB"> </span>[<span style="color: #4070A0">&quot;C:\\Users\\&lt;you&gt;\\gee-mcp\\server.py&quot;</span>]
+<span style="color: #BBB">    </span>}
+<span style="color: #BBB">  </span>}
+}
+</code></pre></div>
+
+<p>A ready-to-copy snippet is provided as <code>claude_desktop_config.snippet.json</code> in the repository root.</p>
+<h3 id="47-verifying-the-mcp-works">4.7 Verifying the MCP works</h3>
+<p>Inside Claude Code (or Claude Desktop) after reload, ask:</p>
+<blockquote>
+<p>"Use the earth-engine MCP and check authenticate_status."</p>
+</blockquote>
+<p>You should see a result like:</p>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code>{
+<span style="color: #BBB">  </span><span style="color: #062873; font-weight: bold">&quot;ok&quot;</span>:<span style="color: #BBB"> </span><span style="color: #007020; font-weight: bold">true</span>,
+<span style="color: #BBB">  </span><span style="color: #062873; font-weight: bold">&quot;project&quot;</span>:<span style="color: #BBB"> </span><span style="color: #4070A0">&quot;ee-yourproject&quot;</span>,
+<span style="color: #BBB">  </span><span style="color: #062873; font-weight: bold">&quot;auth_mode&quot;</span>:<span style="color: #BBB"> </span><span style="color: #4070A0">&quot;user_oauth&quot;</span>
+}
+</code></pre></div>
+
+<p>If you see <code>"ok": false</code>, the most common causes are:</p>
+<ol>
+<li><code>EE_PROJECT</code> is missing from <code>gee-mcp/.env</code></li>
+<li>You haven't run <code>earthengine authenticate</code></li>
+<li>The Google account you authenticated with doesn't own the project named in <code>EE_PROJECT</code></li>
+</ol>
+<hr />
+<h2 id="5-part-2-the-chat-map-web-app">5. Part 2: The Chat-Map Web App</h2>
+<p>The web app builds on the same <code>ee_tools.py</code> logic the MCP uses, but adds a browser UI with a live map and a chat panel that you can drive with any LLM (not just Claude).</p>
+<h3 id="51-stack-choice">5.1 Stack choice</h3>
+<p><strong>Backend:</strong> FastAPI + Uvicorn. Python is forced anyway by the EE library, and FastAPI's automatic OpenAPI docs and type-driven routing made this straightforward.</p>
+<p><strong>Frontend:</strong> Vanilla HTML/CSS/JS + Leaflet for the map. No React, no build step. This keeps the project a one-step install: <code>pip install -r requirements.txt</code> is enough.</p>
+<p><strong>Tile rendering:</strong> Earth Engine has a built-in <code>getMapId()</code> that returns a <code>tile_fetcher.url_format</code> string in standard <code>{z}/{x}/{y}</code> XYZ format. Leaflet's <code>L.tileLayer(template)</code> consumes that directly — no proxy, no static-image generation. Tiles load on demand from Google's CDN.</p>
+<h3 id="52-backend-webappapppy">5.2 Backend: <code>webapp/app.py</code></h3>
+<p>The backend has six routes:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Route</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET</code></td>
+<td><code>/</code></td>
+<td>Serve the single-page HTML</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/health</code></td>
+<td>Report EE status + which provider keys are set</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/models</code></td>
+<td>Return the model catalog with availability annotations</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/chat</code></td>
+<td>The main chat endpoint — runs the LLM tool-use loop</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/upload-asset</code></td>
+<td>Accept GeoJSON or zipped Shapefile → register + export to EE asset</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/export-layer</code></td>
+<td>Re-build a layer's image and start a Drive export or return a download URL</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/reset</code></td>
+<td>Clear a session's chat history</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>/chat</code> route is the heart of the app. Pseudocode:</p>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code><span style="color: #555; font-weight: bold">@app</span><span style="color: #666">.</span>post(<span style="color: #4070A0">&quot;/chat&quot;</span>)
+<span style="color: #007020; font-weight: bold">async</span> <span style="color: #007020; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #06287E">chat</span>(req: ChatRequest):
+    session <span style="color: #666">=</span> SESSIONS<span style="color: #666">.</span>setdefault(req<span style="color: #666">.</span>session_id, {<span style="color: #4070A0">&quot;history&quot;</span>: [], <span style="color: #4070A0">&quot;model_id&quot;</span>: DEFAULT_MODEL})
+    <span style="color: #007020; font-weight: bold">if</span> req<span style="color: #666">.</span>model_id:
+        session[<span style="color: #4070A0">&quot;model_id&quot;</span>] <span style="color: #666">=</span> req<span style="color: #666">.</span>model_id  <span style="color: #60A0B0; font-style: italic"># allow mid-conversation switching</span>
+    text, ops <span style="color: #666">=</span> <span style="color: #007020; font-weight: bold">await</span> run_in_threadpool(
+        llm_providers<span style="color: #666">.</span>run_chat,
+        model_id<span style="color: #666">=</span>session[<span style="color: #4070A0">&quot;model_id&quot;</span>],
+        history<span style="color: #666">=</span>session[<span style="color: #4070A0">&quot;history&quot;</span>],
+        user_message<span style="color: #666">=</span>req<span style="color: #666">.</span>message,
+        tools<span style="color: #666">=</span>TOOLS,
+        system<span style="color: #666">=</span>_build_system_prompt(),
+        execute_tool<span style="color: #666">=</span>_execute_tool,
+    )
+    <span style="color: #007020; font-weight: bold">return</span> {<span style="color: #4070A0">&quot;session_id&quot;</span>: req<span style="color: #666">.</span>session_id, <span style="color: #4070A0">&quot;text&quot;</span>: text, <span style="color: #4070A0">&quot;operations&quot;</span>: ops, <span style="color: #4070A0">&quot;model_id&quot;</span>: session[<span style="color: #4070A0">&quot;model_id&quot;</span>]}
+</code></pre></div>
+
+<p>The interesting bits:</p>
+<ul>
+<li><strong><code>history</code></strong> is provider-agnostic — a list of <code>{role, blocks}</code> turns where each block is one of <code>text</code> / <code>tool_use</code> / <code>tool_result</code>. The provider adapter converts this to its native format on each call. This means <strong>you can switch models mid-conversation</strong> and the new model picks up where the old one left off.</li>
+<li><strong><code>_build_system_prompt()</code></strong> rebuilds the system prompt each turn, appending the names of any AOIs the user has uploaded via the modal. That's how the LLM learns <em>"Testing"</em> refers to a user-uploaded polygon.</li>
+<li><strong><code>_execute_tool(name, args)</code></strong> is a thin dispatcher: it maps the tool name to a function in <code>ee_tools.py</code>, calls it, returns both a model-visible result and an optional frontend operation that the browser will apply to the Leaflet map.</li>
+</ul>
+<h3 id="53-ee-tools-webappee_toolspy">5.3 EE Tools: <code>webapp/ee_tools.py</code></h3>
+<p>The functions used by the web app are similar in spirit to the MCP server's tools but tailored to produce <em>layers</em> (with tile URLs) rather than just stats.</p>
+<ul>
+<li><code>add_ee_layer(source, visualize, aoi, year, months)</code> — composes a Landsat-or-Sentinel-2 median image, applies a visualization (RGB / NDVI / NDBI / LST), calls <code>getMapId()</code>, returns a tile URL + bounds.</li>
+<li><code>add_admin_outline(aoi)</code> — resolves an admin polygon (FAO/GAUL → ADM2 → ADM1 → ADM0) and returns the geometry as GeoJSON for vector rendering.</li>
+<li><code>compute_zonal_stats(...)</code> — mean/min/max/stdDev over the AOI.</li>
+<li><code>list_my_assets(parent)</code> — <code>ee.data.listAssets({"parent": ...})</code>.</li>
+<li><code>add_asset_layer(asset_id, ...)</code> — <code>ee.data.getAsset</code> to detect type, then load as Image or FeatureCollection.</li>
+<li><code>export_layer_to_drive(...)</code> and <code>get_geotiff_url(...)</code> — re-build the image, then either start a <code>Export.image.toDrive</code> task or call <code>getDownloadURL()</code>.</li>
+<li><code>list_export_tasks(limit)</code> — <code>ee.batch.Task.list()</code>.</li>
+<li><code>upload_geojson_as_asset(geojson, asset_name, description)</code> — accepts a GeoJSON dict, constructs an <code>ee.FeatureCollection</code>, calls <code>Export.table.toAsset</code>. <strong>No Google Cloud Storage bucket needed.</strong></li>
+<li><code>shapefile_zip_to_geojson(zip_bytes)</code> — extracts the .shp / .shx / .dbf / .prj from a zip with <code>pyshp</code>, reads features, reprojects to WGS84 if needed via <code>pyproj</code>.</li>
+</ul>
+<p><code>resolve_aoi(aoi)</code> is the smart polymorphic resolver. It accepts:</p>
+<ol>
+<li>A full EE asset path (<code>projects/ee-foo/assets/my_layer</code>)</li>
+<li>A name from the in-memory upload cache (populated by <code>/upload-asset</code>)</li>
+<li>A GAUL admin name (Bangalore → Bangalore Urban via aliases → ADM2 → ADM1 → ADM0)</li>
+<li>A GeoJSON dict (Geometry / Feature / FeatureCollection)</li>
+<li>A <code>{"bbox": [w, s, e, n]}</code> dict</li>
+</ol>
+<p>This is why a single string field in the tool schema is enough — <code>resolve_aoi</code> figures out what the user meant.</p>
+<h3 id="54-frontend-webapptemplatesindexhtml-staticappjs-staticstylecss">5.4 Frontend: <code>webapp/templates/index.html</code>, <code>static/app.js</code>, <code>static/style.css</code></h3>
+<p>The page is a flex split:</p>
+<ul>
+<li><strong>Left (~440 px):</strong> chat panel. Header with the model dropdown, upload button, reset button. Scrollable message list. Textarea + Send button.</li>
+<li><strong>Right (rest):</strong> Leaflet map with CARTO Light basemap. Floating layers panel top-right.</li>
+</ul>
+<p><code>app.js</code> keeps an in-memory <code>Map</code> of layer name → <code>{leaflet: &lt;L.Layer&gt;, meta: {...}}</code>. When <code>/chat</code> returns <code>operations: [{op: "add_layer", layer: {...}}]</code>, the frontend creates a <code>L.tileLayer</code> from the tile URL, adds it to the map, and stores it in the registry. The layers panel re-renders to show toggle checkboxes + ⬇ export + × remove for each entry.</p>
+<p>The model dropdown is populated from <code>/models</code> on page load. The list is grouped by provider; unavailable models (no key) are rendered disabled with a tooltip saying which env var to set.</p>
+<h3 id="55-what-running-looks-like">5.5 What "running" looks like</h3>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code><span style="color: #60A0B0; font-style: italic"># From the project root:</span>
+<span style="color: #007020">cd </span>C:\Users\steen\gee-mcp\webapp
+python -m uvicorn app:app --host 127.0.0.1 --port 8765
+</code></pre></div>
+
+<p>Then open http://127.0.0.1:8765 in your browser. The first request to <code>/chat</code> triggers lazy EE initialization; you'll see <code>GET /health</code> and <code>POST /chat</code> log lines in the terminal.</p>
+<hr />
+<h2 id="6-part-3-vector-upload-exports-asset-browsing">6. Part 3: Vector Upload, Exports, Asset Browsing</h2>
+<h3 id="61-upload-geojson">6.1 Upload — GeoJSON</h3>
+<p>The upload modal accepts a GeoJSON file (FeatureCollection, Feature, or bare Geometry). The backend:</p>
+<ol>
+<li>Reads the file (UTF-8, 20 MB cap)</li>
+<li>JSON-parses it</li>
+<li>Sanity-checks it's an object with <code>"type"</code></li>
+<li>Caches the geometry in <code>ee_tools._UPLOADED_AOIS[name]</code> so it's usable as an AOI <strong>immediately</strong></li>
+<li>Calls <code>ee.batch.Export.table.toAsset(...)</code> to persist it to your EE assets</li>
+</ol>
+<p>The Export task takes 1–3 minutes to ingest, but the in-memory cache makes the AOI usable in chat right away. The next time you say <em>"compute NDVI for Testing"</em>, <code>resolve_aoi("Testing")</code> checks the cache first and finds the geometry without waiting on EE.</p>
+<h3 id="62-upload-shapefile-zipped">6.2 Upload — Shapefile (zipped)</h3>
+<p>Shapefiles are composite — <code>.shp</code> + <code>.shx</code> + <code>.dbf</code> + (optionally) <code>.prj</code>. Users zip the four together and upload the <code>.zip</code>. The backend uses <code>pyshp</code> to read the shapefile and <code>pyproj</code> to reproject to WGS84 if the <code>.prj</code> indicates a different CRS.</p>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code><span style="color: #007020; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #06287E">shapefile_zip_to_geojson</span>(zip_bytes: <span style="color: #007020">bytes</span>) <span style="color: #666">-&gt;</span> <span style="color: #007020">dict</span>:
+    z <span style="color: #666">=</span> zipfile<span style="color: #666">.</span>ZipFile(io<span style="color: #666">.</span>BytesIO(zip_bytes))
+    base <span style="color: #666">=</span> <span style="color: #007020">next</span>(n <span style="color: #007020; font-weight: bold">for</span> n <span style="color: #007020; font-weight: bold">in</span> z<span style="color: #666">.</span>namelist() <span style="color: #007020; font-weight: bold">if</span> n<span style="color: #666">.</span>lower()<span style="color: #666">.</span>endswith(<span style="color: #4070A0">&quot;.shp&quot;</span>))[:<span style="color: #666">-</span><span style="color: #40A070">4</span>]
+
+    sf <span style="color: #666">=</span> shapefile<span style="color: #666">.</span>Reader(
+        shp<span style="color: #666">=</span>io<span style="color: #666">.</span>BytesIO(z<span style="color: #666">.</span>read(<span style="color: #4070A0">f&quot;</span><span style="color: #70A0D0; font-style: italic">{</span>base<span style="color: #70A0D0; font-style: italic">}</span><span style="color: #4070A0">.shp&quot;</span>)),
+        shx<span style="color: #666">=</span>io<span style="color: #666">.</span>BytesIO(z<span style="color: #666">.</span>read(<span style="color: #4070A0">f&quot;</span><span style="color: #70A0D0; font-style: italic">{</span>base<span style="color: #70A0D0; font-style: italic">}</span><span style="color: #4070A0">.shx&quot;</span>)),
+        dbf<span style="color: #666">=</span>io<span style="color: #666">.</span>BytesIO(z<span style="color: #666">.</span>read(<span style="color: #4070A0">f&quot;</span><span style="color: #70A0D0; font-style: italic">{</span>base<span style="color: #70A0D0; font-style: italic">}</span><span style="color: #4070A0">.dbf&quot;</span>)),
+    )
+
+    features <span style="color: #666">=</span> []
+    <span style="color: #007020; font-weight: bold">for</span> sr <span style="color: #007020; font-weight: bold">in</span> sf<span style="color: #666">.</span>shapeRecords():
+        geom <span style="color: #666">=</span> sr<span style="color: #666">.</span>shape<span style="color: #666">.</span>__geo_interface__   <span style="color: #60A0B0; font-style: italic"># pyshp gives GeoJSON-compatible dict</span>
+        props <span style="color: #666">=</span> <span style="color: #007020">dict</span>(<span style="color: #007020">zip</span>(field_names, sr<span style="color: #666">.</span>record))
+        features<span style="color: #666">.</span>append({<span style="color: #4070A0">&quot;type&quot;</span>: <span style="color: #4070A0">&quot;Feature&quot;</span>, <span style="color: #4070A0">&quot;geometry&quot;</span>: geom, <span style="color: #4070A0">&quot;properties&quot;</span>: props})
+
+    <span style="color: #60A0B0; font-style: italic"># Reproject if the .prj isn&#39;t WGS84</span>
+    <span style="color: #007020; font-weight: bold">if</span> prj_text <span style="color: #007020; font-weight: bold">and</span> <span style="color: #007020; font-weight: bold">not</span> src_crs<span style="color: #666">.</span>equals(CRS<span style="color: #666">.</span>from_epsg(<span style="color: #40A070">4326</span>)):
+        transformer <span style="color: #666">=</span> Transformer<span style="color: #666">.</span>from_crs(src_crs, <span style="color: #4070A0">&quot;EPSG:4326&quot;</span>, always_xy<span style="color: #666">=</span><span style="color: #007020; font-weight: bold">True</span>)
+        <span style="color: #60A0B0; font-style: italic"># recurse through coordinate arrays and transform each pair</span>
+        <span style="color: #666">...</span>
+
+    <span style="color: #007020; font-weight: bold">return</span> {<span style="color: #4070A0">&quot;type&quot;</span>: <span style="color: #4070A0">&quot;FeatureCollection&quot;</span>, <span style="color: #4070A0">&quot;features&quot;</span>: features}
+</code></pre></div>
+
+<p>The user just sees: <em>"Uploaded Shapefile with 47 features. You can now use <code>Pune_test</code> as an AOI."</em></p>
+<h3 id="63-exports">6.3 Exports</h3>
+<p>Two flavors:</p>
+<p><strong>Drive export task</strong> — works for any size. Uses <code>ee.batch.Export.image.toDrive(...)</code> and returns a <code>task_id</code>. The user tracks progress at https://code.earthengine.google.com/tasks; the resulting GeoTIFF lands in their Google Drive once the task completes.</p>
+<p><strong>Direct GeoTIFF URL</strong> — uses <code>ee.Image.getDownloadURL(...)</code>. EE caps this at ~32 MB per call, so it's only useful for small AOIs (e.g. one city at 30 m resolution). The URL is short-lived (~24 h) but downloads start immediately.</p>
+<p>The frontend exposes both via the ⬇ button on each raster layer. The export panel includes:</p>
+<ul>
+<li>Format dropdown (Drive / direct URL)</li>
+<li>Scale (m) — pixel resolution</li>
+<li>File name prefix</li>
+<li>Drive folder (only when Drive is selected)</li>
+</ul>
+<p>The export action posts to <code>/export-layer</code> with the same <code>meta</code> (<code>source</code>, <code>visualize</code>, <code>aoi_input</code>, <code>year</code>, <code>months</code>) that built the layer. Backend re-runs the same composite, then calls the appropriate EE method.</p>
+<h3 id="64-asset-browsing">6.4 Asset Browsing</h3>
+<p><code>list_my_assets("")</code> calls <code>ee.data.listAssets({"parent": "projects/&lt;EE_PROJECT&gt;/assets"})</code>. The result enumerates everything in your project root. Each entry has an <code>id</code>, <code>type</code> (<code>IMAGE</code> / <code>IMAGECOLLECTION</code> / <code>TABLE</code> / <code>FOLDER</code>), and <code>updateTime</code>.</p>
+<p><code>add_asset_layer(asset_id)</code> detects the type and dispatches:</p>
+<ul>
+<li><strong>IMAGE</strong> → loaded with <code>ee.Image(asset_id)</code>; visualized with sane defaults (RGB stretch if it has 3+ bands, single-band palette otherwise)</li>
+<li><strong>IMAGECOLLECTION</strong> → mean composite, then same as IMAGE</li>
+<li><strong>TABLE</strong> (FeatureCollection) → loaded with <code>ee.FeatureCollection(asset_id)</code>; returned as GeoJSON for vector rendering (capped at 5,000 features for client safety)</li>
+</ul>
+<hr />
+<h2 id="7-part-4-multi-provider-llm-layer">7. Part 4: Multi-Provider LLM Layer</h2>
+<p>The web app supports six LLM providers behind one abstraction. The internal message format is provider-agnostic; each adapter converts it to and from its native format.</p>
+<h3 id="71-internal-format">7.1 Internal format</h3>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code>history <span style="color: #666">=</span> [
+  {<span style="color: #4070A0">&quot;role&quot;</span>: <span style="color: #4070A0">&quot;user&quot;</span>, <span style="color: #4070A0">&quot;blocks&quot;</span>: [{<span style="color: #4070A0">&quot;type&quot;</span>: <span style="color: #4070A0">&quot;text&quot;</span>, <span style="color: #4070A0">&quot;text&quot;</span>: <span style="color: #4070A0">&quot;Hello&quot;</span>}]},
+  {<span style="color: #4070A0">&quot;role&quot;</span>: <span style="color: #4070A0">&quot;assistant&quot;</span>, <span style="color: #4070A0">&quot;blocks&quot;</span>: [
+      {<span style="color: #4070A0">&quot;type&quot;</span>: <span style="color: #4070A0">&quot;text&quot;</span>, <span style="color: #4070A0">&quot;text&quot;</span>: <span style="color: #4070A0">&quot;Hi! What can I do?&quot;</span>},
+      {<span style="color: #4070A0">&quot;type&quot;</span>: <span style="color: #4070A0">&quot;tool_use&quot;</span>, <span style="color: #4070A0">&quot;id&quot;</span>: <span style="color: #4070A0">&quot;call_abc&quot;</span>, <span style="color: #4070A0">&quot;name&quot;</span>: <span style="color: #4070A0">&quot;list_my_assets&quot;</span>, <span style="color: #4070A0">&quot;args&quot;</span>: {<span style="color: #4070A0">&quot;parent&quot;</span>: <span style="color: #4070A0">&quot;&quot;</span>}},
+  ]},
+  {<span style="color: #4070A0">&quot;role&quot;</span>: <span style="color: #4070A0">&quot;user&quot;</span>, <span style="color: #4070A0">&quot;blocks&quot;</span>: [
+      {<span style="color: #4070A0">&quot;type&quot;</span>: <span style="color: #4070A0">&quot;tool_result&quot;</span>, <span style="color: #4070A0">&quot;tool_use_id&quot;</span>: <span style="color: #4070A0">&quot;call_abc&quot;</span>,
+       <span style="color: #4070A0">&quot;content&quot;</span>: <span style="color: #4070A0">&#39;{&quot;asset_count&quot;: 4, &quot;assets&quot;: [...]}&#39;</span>},
+  ]},
+]
+</code></pre></div>
+
+<p>This lets you switch from Gemini to Claude mid-conversation — the new adapter rebuilds the prior history into its own provider format.</p>
+<h3 id="72-the-provider-adapters">7.2 The provider adapters</h3>
+<table>
+<thead>
+<tr>
+<th>Adapter</th>
+<th>SDK</th>
+<th>Wire format</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Gemini</strong></td>
+<td><code>google-genai</code></td>
+<td><code>genai_types.Content(role, parts=[...])</code> with <code>Part.from_text()</code> / <code>Part.from_function_call()</code> / <code>Part.from_function_response()</code></td>
+</tr>
+<tr>
+<td><strong>Anthropic Claude</strong></td>
+<td><code>anthropic</code></td>
+<td>Blocks: <code>{"type": "text", ...}</code> / <code>{"type": "tool_use", "id", "name", "input"}</code> / <code>{"type": "tool_result", "tool_use_id", "content"}</code></td>
+</tr>
+<tr>
+<td><strong>OpenAI-compatible</strong></td>
+<td><code>openai</code></td>
+<td>Messages with <code>role</code>, <code>content</code>, optional <code>tool_calls</code>; <code>role: "tool"</code> messages for results. Same shape works for OpenAI, Groq, Mistral, OpenRouter — only the <code>base_url</code> and key change.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="73-the-catalog">7.3 The catalog</h3>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code>MODEL_CATALOG <span style="color: #666">=</span> [
+    ModelSpec(<span style="color: #4070A0">&quot;google&quot;</span>, <span style="color: #4070A0">&quot;gemini-2.5-flash&quot;</span>, <span style="color: #4070A0">&quot;Gemini 2.5 Flash&quot;</span>, free<span style="color: #666">=</span><span style="color: #007020; font-weight: bold">True</span>, <span style="color: #666">...</span>),
+    ModelSpec(<span style="color: #4070A0">&quot;google&quot;</span>, <span style="color: #4070A0">&quot;gemini-2.5-pro&quot;</span>, <span style="color: #4070A0">&quot;Gemini 2.5 Pro&quot;</span>, free<span style="color: #666">=</span><span style="color: #007020; font-weight: bold">False</span>, <span style="color: #666">...</span>),
+    ModelSpec(<span style="color: #4070A0">&quot;groq&quot;</span>, <span style="color: #4070A0">&quot;llama-3.3-70b-versatile&quot;</span>, <span style="color: #4070A0">&quot;Llama 3.3 70B (Groq)&quot;</span>, free<span style="color: #666">=</span><span style="color: #007020; font-weight: bold">True</span>, <span style="color: #666">...</span>),
+    ModelSpec(<span style="color: #4070A0">&quot;mistral&quot;</span>, <span style="color: #4070A0">&quot;mistral-small-latest&quot;</span>, <span style="color: #4070A0">&quot;Mistral Small&quot;</span>, free<span style="color: #666">=</span><span style="color: #007020; font-weight: bold">True</span>, <span style="color: #666">...</span>),
+    ModelSpec(<span style="color: #4070A0">&quot;openrouter&quot;</span>, <span style="color: #4070A0">&quot;meta-llama/llama-3.3-70b-instruct:free&quot;</span>, <span style="color: #666">...</span>, free<span style="color: #666">=</span><span style="color: #007020; font-weight: bold">True</span>),
+    ModelSpec(<span style="color: #4070A0">&quot;anthropic&quot;</span>, <span style="color: #4070A0">&quot;claude-opus-4-8&quot;</span>, <span style="color: #4070A0">&quot;Claude Opus 4.8&quot;</span>, free<span style="color: #666">=</span><span style="color: #007020; font-weight: bold">False</span>, <span style="color: #666">...</span>),
+    ModelSpec(<span style="color: #4070A0">&quot;openai&quot;</span>, <span style="color: #4070A0">&quot;gpt-4o&quot;</span>, <span style="color: #4070A0">&quot;GPT-4o&quot;</span>, free<span style="color: #666">=</span><span style="color: #007020; font-weight: bold">False</span>, <span style="color: #666">...</span>),
+    <span style="color: #60A0B0; font-style: italic"># ... and a few more per provider</span>
+]
+
+PROVIDER_CONFIG <span style="color: #666">=</span> {
+    <span style="color: #4070A0">&quot;google&quot;</span>:     {<span style="color: #4070A0">&quot;env&quot;</span>: (<span style="color: #4070A0">&quot;GEMINI_API_KEY&quot;</span>, <span style="color: #4070A0">&quot;GOOGLE_API_KEY&quot;</span>), <span style="color: #4070A0">&quot;base_url&quot;</span>: <span style="color: #007020; font-weight: bold">None</span>},
+    <span style="color: #4070A0">&quot;anthropic&quot;</span>:  {<span style="color: #4070A0">&quot;env&quot;</span>: (<span style="color: #4070A0">&quot;ANTHROPIC_API_KEY&quot;</span>,), <span style="color: #4070A0">&quot;base_url&quot;</span>: <span style="color: #007020; font-weight: bold">None</span>},
+    <span style="color: #4070A0">&quot;openai&quot;</span>:     {<span style="color: #4070A0">&quot;env&quot;</span>: (<span style="color: #4070A0">&quot;OPENAI_API_KEY&quot;</span>,), <span style="color: #4070A0">&quot;base_url&quot;</span>: <span style="color: #007020; font-weight: bold">None</span>},
+    <span style="color: #4070A0">&quot;groq&quot;</span>:       {<span style="color: #4070A0">&quot;env&quot;</span>: (<span style="color: #4070A0">&quot;GROQ_API_KEY&quot;</span>,), <span style="color: #4070A0">&quot;base_url&quot;</span>: <span style="color: #4070A0">&quot;https://api.groq.com/openai/v1&quot;</span>},
+    <span style="color: #4070A0">&quot;mistral&quot;</span>:    {<span style="color: #4070A0">&quot;env&quot;</span>: (<span style="color: #4070A0">&quot;MISTRAL_API_KEY&quot;</span>,), <span style="color: #4070A0">&quot;base_url&quot;</span>: <span style="color: #4070A0">&quot;https://api.mistral.ai/v1&quot;</span>},
+    <span style="color: #4070A0">&quot;openrouter&quot;</span>: {<span style="color: #4070A0">&quot;env&quot;</span>: (<span style="color: #4070A0">&quot;OPENROUTER_API_KEY&quot;</span>,), <span style="color: #4070A0">&quot;base_url&quot;</span>: <span style="color: #4070A0">&quot;https://openrouter.ai/api/v1&quot;</span>},
+}
+</code></pre></div>
+
+<p>A model is "available" if its env var is set. The frontend grays out unavailable models in the dropdown with a tooltip showing which env var to set.</p>
+<h3 id="74-adding-a-new-provider">7.4 Adding a new provider</h3>
+<p>Edit <code>llm_providers.py</code>:</p>
+<ol>
+<li>Add an entry to <code>PROVIDER_CONFIG</code> with the env var name and base URL (or <code>None</code> if it has its own SDK)</li>
+<li>If it's OpenAI-compatible, you're done — <code>_openai_run</code> already handles it</li>
+<li>If it has its own SDK, write a new <code>_yourprovider_run(...)</code> adapter following the Gemini / Anthropic patterns</li>
+<li>Wire the new adapter into the <code>run_chat</code> dispatcher</li>
+<li>Add the model(s) to <code>MODEL_CATALOG</code></li>
+</ol>
+<hr />
+<h2 id="8-running-everything-commands-reference">8. Running Everything (Commands Reference)</h2>
+<h3 id="81-one-time-setup-commands">8.1 One-time setup commands</h3>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code><span style="color: #60A0B0; font-style: italic"># Python deps (run once, or after pulling new requirements.txt)</span>
+python -m pip install --upgrade -r requirements.txt
+
+<span style="color: #60A0B0; font-style: italic"># Earth Engine OAuth (run once per machine)</span>
+&amp; <span style="color: #4070A0">&quot;$env:APPDATA\Python\Python314\Scripts\earthengine.exe&quot;</span> authenticate
+
+<span style="color: #60A0B0; font-style: italic"># Copy .env template and fill in your values</span>
+<span style="color: #007020">copy </span>.env.example .env
+<span style="color: #60A0B0; font-style: italic"># Edit .env in Notepad and set EE_PROJECT + at least one LLM key</span>
+</code></pre></div>
+
+<h3 id="82-day-to-day-commands">8.2 Day-to-day commands</h3>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code><span style="color: #60A0B0; font-style: italic"># Start the web app</span>
+<span style="color: #007020">cd </span>C:\Users\steen\gee-mcp\webapp
+python -m uvicorn app:app --host 127.0.0.1 --port 8765
+
+<span style="color: #60A0B0; font-style: italic"># Open the UI</span>
+<span style="color: #007020">start </span>http://127.0.0.1:8765
+</code></pre></div>
+
+<p>The MCP server doesn't get launched by hand — Claude Code / Claude Desktop launches it as a subprocess whenever you start a conversation in those apps.</p>
+<h3 id="83-stop-the-web-app">8.3 Stop the web app</h3>
+<p>In the terminal where uvicorn is running: <strong>Ctrl+C</strong>.</p>
+<hr />
+<h2 id="9-reproducing-on-a-fresh-machine-without-ai">9. Reproducing on a Fresh Machine — Without AI</h2>
+<p>This is the path you follow on a colleague's PC, a new laptop, or after a clean OS reinstall. No AI required; every step is a literal command or click.</p>
+<h3 id="91-prerequisites">9.1 Prerequisites</h3>
+<table>
+<thead>
+<tr>
+<th>Software</th>
+<th>Where to get it</th>
+<th>Version</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Python 3.11+</td>
+<td>https://python.org/downloads</td>
+<td>3.11 or newer (3.14 works)</td>
+</tr>
+<tr>
+<td>Git for Windows</td>
+<td>https://git-scm.com/download/win</td>
+<td>latest</td>
+</tr>
+<tr>
+<td>A Google account with EE access</td>
+<td>https://signup.earthengine.google.com</td>
+<td>—</td>
+</tr>
+<tr>
+<td>(Optional) VS Code + Claude Code extension</td>
+<td>https://code.visualstudio.com + ext from Anthropic</td>
+<td>—</td>
+</tr>
+<tr>
+<td>(Optional) Claude Desktop</td>
+<td>https://claude.ai/download</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>Install Python with the "Add Python to PATH" checkbox <strong>on</strong>. Confirm in a new terminal:</p>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code>python --version
+git --version
+</code></pre></div>
+
+<h3 id="92-clone-and-install">9.2 Clone and install</h3>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code><span style="color: #60A0B0; font-style: italic"># Clone the repo</span>
+git clone https://github.com/Madhulika07-prog/GEE_MCP_Plugin.git gee-mcp
+<span style="color: #007020">cd </span>gee-mcp
+
+<span style="color: #60A0B0; font-style: italic"># Install Python deps</span>
+python -m pip install --upgrade -r requirements.txt
+</code></pre></div>
+
+<p>This installs everything: <code>earthengine-api</code>, <code>mcp</code>, <code>fastapi</code>, <code>uvicorn</code>, <code>jinja2</code>, <code>google-genai</code>, <code>anthropic</code>, <code>openai</code>, <code>pyshp</code>, <code>pyproj</code>, <code>python-dotenv</code>, <code>python-multipart</code>, <code>pydantic</code>.</p>
+<h3 id="93-authenticate-to-earth-engine">9.3 Authenticate to Earth Engine</h3>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code><span style="color: #60A0B0; font-style: italic"># Find the earthengine script (path varies by Python version):</span>
+where.exe earthengine
+<span style="color: #60A0B0; font-style: italic"># If it&#39;s not on PATH, look in:</span>
+<span style="color: #60A0B0; font-style: italic">#   %APPDATA%\Python\Python&lt;XYZ&gt;\Scripts\earthengine.exe</span>
+
+<span style="color: #60A0B0; font-style: italic"># Run authentication. A browser opens, sign in with the Google account that</span>
+<span style="color: #60A0B0; font-style: italic"># owns your EE project. The token is saved automatically.</span>
+earthengine authenticate
+<span style="color: #60A0B0; font-style: italic"># or, with the full path:</span>
+&amp; <span style="color: #4070A0">&quot;$env:APPDATA\Python\Python314\Scripts\earthengine.exe&quot;</span> authenticate
+</code></pre></div>
+
+<h3 id="94-configure-env">9.4 Configure <code>.env</code></h3>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code><span style="color: #007020">copy </span>.env.example .env
+notepad .env
+</code></pre></div>
+
+<p>Set, at minimum:</p>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code>EE_PROJECT=ee-yourproject
+
+# Free option (recommended for first run):
+GEMINI_API_KEY=AIzaSy...      # get at https://aistudio.google.com/apikey
+</code></pre></div>
+
+<p>Add any of the optional keys if you want more model choices:</p>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code>GROQ_API_KEY=gsk_...           # https://console.groq.com/keys  (free)
+MISTRAL_API_KEY=...            # https://console.mistral.ai     (free tier)
+OPENROUTER_API_KEY=sk-or-...   # https://openrouter.ai/keys     (some free models)
+ANTHROPIC_API_KEY=sk-ant-...   # https://console.anthropic.com  (paid)
+OPENAI_API_KEY=sk-...          # https://platform.openai.com    (paid)
+</code></pre></div>
+
+<h3 id="95-start-the-web-app">9.5 Start the web app</h3>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code><span style="color: #007020">cd </span>webapp
+python -m uvicorn app:app --host 127.0.0.1 --port 8765
+</code></pre></div>
+
+<p>Open http://127.0.0.1:8765 and try <em>"Show NDVI over Bangalore for May 2024"</em>.</p>
+<h3 id="96-optional-wire-the-mcp-server-into-claude-code">9.6 (Optional) Wire the MCP server into Claude Code</h3>
+<p>Edit <code>%USERPROFILE%\.claude.json</code> and add:</p>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code>{
+<span style="color: #BBB">  </span><span style="color: #062873; font-weight: bold">&quot;mcpServers&quot;</span>:<span style="color: #BBB"> </span>{
+<span style="color: #BBB">    </span><span style="color: #062873; font-weight: bold">&quot;earth-engine&quot;</span>:<span style="color: #BBB"> </span>{
+<span style="color: #BBB">      </span><span style="color: #062873; font-weight: bold">&quot;type&quot;</span>:<span style="color: #BBB"> </span><span style="color: #4070A0">&quot;stdio&quot;</span>,
+<span style="color: #BBB">      </span><span style="color: #062873; font-weight: bold">&quot;command&quot;</span>:<span style="color: #BBB"> </span><span style="color: #4070A0">&quot;C:\\Python314\\python.exe&quot;</span>,
+<span style="color: #BBB">      </span><span style="color: #062873; font-weight: bold">&quot;args&quot;</span>:<span style="color: #BBB"> </span>[<span style="color: #4070A0">&quot;C:\\path\\to\\gee-mcp\\server.py&quot;</span>]
+<span style="color: #BBB">    </span>}
+<span style="color: #BBB">  </span>}
+}
+</code></pre></div>
+
+<p>(Replace <code>C:\\Python314\\python.exe</code> with the output of <code>where.exe python</code> and <code>C:\\path\\to\\gee-mcp</code> with your actual clone path. Note the double backslashes — they're JSON-escaped.)</p>
+<p>Reload the VS Code window. Test by asking Claude Code: <em>"check earth-engine authenticate_status"</em>.</p>
+<h3 id="97-optional-wire-the-mcp-server-into-claude-desktop">9.7 (Optional) Wire the MCP server into Claude Desktop</h3>
+<p>Edit <code>%APPDATA%\Claude\claude_desktop_config.json</code> with the same structure (the file <code>claude_desktop_config.snippet.json</code> in the repo is a ready-to-copy template — just substitute your actual paths).</p>
+<p>Quit and restart Claude Desktop.</p>
+<h3 id="98-verifying-the-install">9.8 Verifying the install</h3>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code><span style="color: #60A0B0; font-style: italic"># Confirm Python imports succeed</span>
+python -c <span style="color: #4070A0">&quot;import ee, fastapi, anthropic, google.genai, openai, shapefile, pyproj; print(&#39;OK&#39;)&quot;</span>
+
+<span style="color: #60A0B0; font-style: italic"># Confirm EE auth works</span>
+python -c <span style="color: #4070A0">&quot;import ee; ee.Initialize(project=&#39;ee-yourproject&#39;); print(ee.Number(1).getInfo())&quot;</span>
+</code></pre></div>
+
+<p>Both should print without errors. If the EE call fails, re-run <code>earthengine authenticate</code> and double-check <code>EE_PROJECT</code> in <code>.env</code>.</p>
+<hr />
+<h2 id="10-models-api-keys-reference">10. Models &amp; API Keys Reference</h2>
+<h3 id="101-the-full-catalog">10.1 The full catalog</h3>
+<table>
+<thead>
+<tr>
+<th>Provider</th>
+<th>Model ID</th>
+<th>Cost tier</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Google</td>
+<td><code>gemini-2.5-flash</code></td>
+<td>Free</td>
+<td>Default — best balance of quality / speed / cost</td>
+</tr>
+<tr>
+<td>Google</td>
+<td><code>gemini-2.5-flash-lite</code></td>
+<td>Free</td>
+<td>Fastest; lower quality</td>
+</tr>
+<tr>
+<td>Google</td>
+<td><code>gemini-2.5-pro</code></td>
+<td>Paid</td>
+<td>Highest quality on Google</td>
+</tr>
+<tr>
+<td>Groq</td>
+<td><code>llama-3.3-70b-versatile</code></td>
+<td>Free</td>
+<td>Strong tool use; fast</td>
+</tr>
+<tr>
+<td>Groq</td>
+<td><code>llama-3.1-8b-instant</code></td>
+<td>Free</td>
+<td>Sub-second responses</td>
+</tr>
+<tr>
+<td>Mistral</td>
+<td><code>mistral-small-latest</code></td>
+<td>Free tier</td>
+<td>OK for chat</td>
+</tr>
+<tr>
+<td>Mistral</td>
+<td><code>mistral-large-latest</code></td>
+<td>Paid</td>
+<td>Strong reasoning</td>
+</tr>
+<tr>
+<td>OpenRouter</td>
+<td><code>meta-llama/llama-3.3-70b-instruct:free</code></td>
+<td>Free</td>
+<td>Proxied; rate-limited</td>
+</tr>
+<tr>
+<td>OpenRouter</td>
+<td><code>google/gemini-2.0-flash-exp:free</code></td>
+<td>Free</td>
+<td>Experimental Gemini through OR</td>
+</tr>
+<tr>
+<td>Anthropic</td>
+<td><code>claude-opus-4-8</code></td>
+<td>Paid</td>
+<td>Highest reasoning quality</td>
+</tr>
+<tr>
+<td>Anthropic</td>
+<td><code>claude-sonnet-4-6</code></td>
+<td>Paid</td>
+<td>Balanced</td>
+</tr>
+<tr>
+<td>Anthropic</td>
+<td><code>claude-haiku-4-5</code></td>
+<td>Paid</td>
+<td>Cheapest Claude</td>
+</tr>
+<tr>
+<td>OpenAI</td>
+<td><code>gpt-4o</code></td>
+<td>Paid</td>
+<td>OpenAI flagship</td>
+</tr>
+<tr>
+<td>OpenAI</td>
+<td><code>gpt-4o-mini</code></td>
+<td>Paid</td>
+<td>Cheaper GPT</td>
+</tr>
+</tbody>
+</table>
+<h3 id="102-environment-variables">10.2 Environment variables</h3>
+<p><code>.env</code> lives next to <code>server.py</code> and <code>webapp/</code>. The web app reads it on every start; the MCP server reads it on every Claude Code reload.</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Required?</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>EE_PROJECT</code></td>
+<td>Yes</td>
+<td>Your Earth Engine Cloud project ID, e.g. <code>ee-madhulikasmriti</code></td>
+</tr>
+<tr>
+<td><code>EE_SERVICE_ACCOUNT_KEY</code></td>
+<td>No</td>
+<td>Path to a service-account JSON if you want headless auth</td>
+</tr>
+<tr>
+<td><code>GEMINI_API_KEY</code></td>
+<td>At least one LLM key</td>
+<td>Google AI Studio key</td>
+</tr>
+<tr>
+<td><code>GOOGLE_API_KEY</code></td>
+<td>(alternative to above)</td>
+<td>Same as <code>GEMINI_API_KEY</code></td>
+</tr>
+<tr>
+<td><code>ANTHROPIC_API_KEY</code></td>
+<td>Optional</td>
+<td>Unlocks Claude models in the dropdown</td>
+</tr>
+<tr>
+<td><code>OPENAI_API_KEY</code></td>
+<td>Optional</td>
+<td>Unlocks GPT models</td>
+</tr>
+<tr>
+<td><code>GROQ_API_KEY</code></td>
+<td>Optional</td>
+<td>Unlocks Llama-on-Groq</td>
+</tr>
+<tr>
+<td><code>MISTRAL_API_KEY</code></td>
+<td>Optional</td>
+<td>Unlocks Mistral</td>
+</tr>
+<tr>
+<td><code>OPENROUTER_API_KEY</code></td>
+<td>Optional</td>
+<td>Unlocks OpenRouter models</td>
+</tr>
+</tbody>
+</table>
+<h3 id="103-where-to-get-each-key">10.3 Where to get each key</h3>
+<table>
+<thead>
+<tr>
+<th>Provider</th>
+<th>URL</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Google Gemini</td>
+<td>https://aistudio.google.com/apikey</td>
+<td>Sign in with any Google account. No card needed. Keys start <code>AIzaSy...</code>.</td>
+</tr>
+<tr>
+<td>Groq</td>
+<td>https://console.groq.com/keys</td>
+<td>Sign up, generate a key. Free tier. Keys start <code>gsk_...</code>.</td>
+</tr>
+<tr>
+<td>Mistral</td>
+<td>https://console.mistral.ai</td>
+<td>Sign up, navigate to API Keys. Free tier on small models.</td>
+</tr>
+<tr>
+<td>OpenRouter</td>
+<td>https://openrouter.ai/keys</td>
+<td>Free credits at signup; some models marked <code>:free</code>. Keys start <code>sk-or-...</code>.</td>
+</tr>
+<tr>
+<td>Anthropic</td>
+<td>https://console.anthropic.com</td>
+<td>Card required. Keys start <code>sk-ant-...</code>.</td>
+</tr>
+<tr>
+<td>OpenAI</td>
+<td>https://platform.openai.com/api-keys</td>
+<td>Card required. Keys start <code>sk-...</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="104-adding-more-models-via-the-user-supplied-key-path">10.4 Adding more models via the user-supplied key path</h3>
+<p>If you want to add a model that's not in the catalog, edit <code>webapp/llm_providers.py</code> and append to <code>MODEL_CATALOG</code>:</p>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code>ModelSpec(<span style="color: #4070A0">&quot;groq&quot;</span>, <span style="color: #4070A0">&quot;qwen-qwq-32b&quot;</span>, <span style="color: #4070A0">&quot;Qwen QwQ 32B (Groq)&quot;</span>, free<span style="color: #666">=</span><span style="color: #007020; font-weight: bold">True</span>, notes<span style="color: #666">=</span><span style="color: #4070A0">&quot;Reasoning&quot;</span>),
+</code></pre></div>
+
+<p>The list refreshes on the next page load (<code>/models</code> is hit on boot).</p>
+<hr />
+<h2 id="11-project-file-reference">11. Project File Reference</h2>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code>gee-mcp/
+│
+├── README.md                                # Project README
+├── requirements.txt                         # All Python deps
+├── .env.example                             # Template for the secrets file
+├── .gitignore                               # Excludes .env, __pycache__, credential JSONs
+├── claude_desktop_config.snippet.json       # Ready-to-paste MCP config for Claude Desktop
+│
+├── server.py                                # MCP server (Claude Code / Claude Desktop)
+│
+├── docs/
+│   ├── bangalore-uhi.md                     # Worked example: UHI analysis writeup
+│   ├── setup-guide.md                       # This document (source)
+│   ├── setup-guide.html                     # Rendered HTML
+│   ├── setup-guide.pdf                      # Rendered PDF
+│   ├── build_docs.py                        # Markdown → HTML + PDF builder script
+│   └── figures/
+│       ├── lst_2015.png                     # Map: LST Mar–May 2015
+│       ├── lst_2024.png                     # Map: LST Mar–May 2024
+│       ├── lst_delta_2024_minus_2015.png   # Map: ΔLST
+│       └── ndvi_2024.png                    # Map: NDVI 2024
+│
+└── webapp/
+    ├── app.py                               # FastAPI backend
+    ├── ee_tools.py                          # EE layer + asset + export logic
+    ├── llm_providers.py                     # Multi-LLM adapter
+    ├── templates/
+    │   └── index.html                       # Single-page app
+    └── static/
+        ├── app.js                           # Frontend JS (Leaflet + chat)
+        └── style.css                        # All styling
+</code></pre></div>
+
+<hr />
+<h2 id="12-troubleshooting">12. Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Browser shows "This site can't be reached"</strong></td>
+<td>uvicorn not running</td>
+<td><code>cd webapp &amp;&amp; python -m uvicorn app:app --host 127.0.0.1 --port 8765</code></td>
+</tr>
+<tr>
+<td><strong><code>/health</code> says <code>ee_ok: false</code></strong></td>
+<td>EE auth missing or wrong project</td>
+<td>Run <code>earthengine authenticate</code>; check <code>EE_PROJECT</code> matches a project you own</td>
+</tr>
+<tr>
+<td><strong><code>/health</code> says no provider keys set</strong></td>
+<td>Missing LLM key in <code>.env</code></td>
+<td>Get a free Gemini key, add to <code>.env</code>, restart server</td>
+</tr>
+<tr>
+<td><strong>MCP tools don't appear in Claude Code</strong></td>
+<td>Wrong config file</td>
+<td>Should be <code>~/.claude.json</code> (top-level <code>mcpServers</code>), not <code>~/.claude/settings.json</code></td>
+</tr>
+<tr>
+<td><strong>MCP shows up but <code>authenticate_status</code> fails</strong></td>
+<td><code>EE_PROJECT</code> missing or wrong</td>
+<td>Add to <code>gee-mcp/.env</code>, then reload the VS Code window</td>
+</tr>
+<tr>
+<td><strong>Chat returns empty text on Gemini</strong></td>
+<td>Thinking mode consumed all output tokens</td>
+<td>The code disables thinking on 2.5 Flash; verify you're on the latest <code>llm_providers.py</code></td>
+</tr>
+<tr>
+<td><strong>"Asset not found" on upload</strong></td>
+<td>EE asset ingestion task is still queued</td>
+<td>Wait for the task to show COMPLETED in https://code.earthengine.google.com/tasks; the AOI cache in memory makes the geometry usable in chat in the meantime</td>
+</tr>
+<tr>
+<td><strong>Shapefile upload fails</strong></td>
+<td>Missing <code>.shx</code> or <code>.dbf</code> in zip</td>
+<td>Zip must contain <code>.shp</code> + <code>.shx</code> + <code>.dbf</code>; <code>.prj</code> is recommended</td>
+</tr>
+<tr>
+<td><strong>Per-layer ⬇ button missing</strong></td>
+<td>Layer is an asset/outline, not from <code>add_ee_layer</code></td>
+<td>Re-create the equivalent layer via chat (<code>add_ee_layer</code> flow stores the source params)</td>
+</tr>
+<tr>
+<td><strong><code>internal server error</code> on <code>/</code></strong></td>
+<td>Starlette 0.36+ requires <code>request</code> as first arg to <code>TemplateResponse</code></td>
+<td>Already fixed; pull latest <code>app.py</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="13-extending-the-system">13. Extending the System</h2>
+<h3 id="131-add-a-new-ee-tool">13.1 Add a new EE tool</h3>
+<p>In <code>webapp/ee_tools.py</code>, write a Python function with simple args (strings, ints, lists):</p>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code><span style="color: #007020; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #06287E">compute_swir_burn_ratio</span>(aoi, year, months<span style="color: #666">=</span><span style="color: #007020; font-weight: bold">None</span>):
+    ensure_ee()
+    geom, _ <span style="color: #666">=</span> resolve_aoi(aoi)
+    months <span style="color: #666">=</span> months <span style="color: #007020; font-weight: bold">or</span> [<span style="color: #40A070">3</span>, <span style="color: #40A070">4</span>, <span style="color: #40A070">5</span>]
+    start, end <span style="color: #666">=</span> _window_dates(year, months)
+    coll <span style="color: #666">=</span> _landsat_sr(start, end, geom)
+    img <span style="color: #666">=</span> coll<span style="color: #666">.</span>map(<span style="color: #007020; font-weight: bold">lambda</span> i: ee<span style="color: #666">.</span>Image(i)<span style="color: #666">.</span>normalizedDifference([<span style="color: #4070A0">&quot;SWIR1&quot;</span>, <span style="color: #4070A0">&quot;SWIR2&quot;</span>])<span style="color: #666">.</span>rename(<span style="color: #4070A0">&quot;SBR&quot;</span>))<span style="color: #666">.</span>median()
+    <span style="color: #007020; font-weight: bold">return</span> img<span style="color: #666">.</span>reduceRegion(<span style="color: #666">...</span>)<span style="color: #666">.</span>getInfo()
+</code></pre></div>
+
+<p>In <code>webapp/app.py</code>, add a tool declaration to <code>TOOLS</code> and a dispatch case in <code>_execute_tool</code>:</p>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code>{
+    <span style="color: #4070A0">&quot;name&quot;</span>: <span style="color: #4070A0">&quot;compute_swir_burn_ratio&quot;</span>,
+    <span style="color: #4070A0">&quot;description&quot;</span>: <span style="color: #4070A0">&quot;Burn severity proxy from Landsat SWIR1 vs SWIR2.&quot;</span>,
+    <span style="color: #4070A0">&quot;parameters&quot;</span>: {
+        <span style="color: #4070A0">&quot;type&quot;</span>: <span style="color: #4070A0">&quot;object&quot;</span>,
+        <span style="color: #4070A0">&quot;properties&quot;</span>: {
+            <span style="color: #4070A0">&quot;aoi&quot;</span>: {<span style="color: #4070A0">&quot;type&quot;</span>: <span style="color: #4070A0">&quot;string&quot;</span>},
+            <span style="color: #4070A0">&quot;year&quot;</span>: {<span style="color: #4070A0">&quot;type&quot;</span>: <span style="color: #4070A0">&quot;integer&quot;</span>},
+            <span style="color: #4070A0">&quot;months&quot;</span>: {<span style="color: #4070A0">&quot;type&quot;</span>: <span style="color: #4070A0">&quot;array&quot;</span>, <span style="color: #4070A0">&quot;items&quot;</span>: {<span style="color: #4070A0">&quot;type&quot;</span>: <span style="color: #4070A0">&quot;integer&quot;</span>}},
+        },
+        <span style="color: #4070A0">&quot;required&quot;</span>: [<span style="color: #4070A0">&quot;aoi&quot;</span>, <span style="color: #4070A0">&quot;year&quot;</span>],
+    },
+},
+
+<span style="color: #60A0B0; font-style: italic"># In _execute_tool:</span>
+<span style="color: #007020; font-weight: bold">if</span> name <span style="color: #666">==</span> <span style="color: #4070A0">&quot;compute_swir_burn_ratio&quot;</span>:
+    result <span style="color: #666">=</span> ee_tools<span style="color: #666">.</span>compute_swir_burn_ratio(<span style="color: #666">**</span>args)
+    <span style="color: #007020; font-weight: bold">return</span> result, <span style="color: #007020; font-weight: bold">None</span>
+</code></pre></div>
+
+<p>Restart the server and the new tool is live.</p>
+<h3 id="132-add-a-new-llm-provider">13.2 Add a new LLM provider</h3>
+<p>See §7.4 above. The OpenAI-compatible path (Groq / Mistral / OpenRouter) is the easiest — just add the entry to <code>PROVIDER_CONFIG</code> with the right base URL.</p>
+<h3 id="133-add-raster-image-upload-to-ee">13.3 Add raster image upload to EE</h3>
+<p>This needs a Google Cloud Storage bucket. Steps:</p>
+<ol>
+<li>Create a GCS bucket: <code>gsutil mb -p ee-yourproject gs://your-bucket-name</code></li>
+<li>Service-account JSON with <code>Storage Object Admin</code> on that bucket</li>
+<li>New endpoint <code>/upload-raster</code> that:</li>
+<li>Accepts a GeoTIFF</li>
+<li>Uploads to GCS via <code>google-cloud-storage</code></li>
+<li>Triggers <code>ee.data.startIngestion({"id": "projects/.../assets/&lt;name&gt;", "tilesets": [{"sources": [{"primaryPath": "gs://..."}]}]})</code></li>
+<li>Returns the task ID</li>
+</ol>
+<p>The architecture supports it; the work is mostly wiring credentials and writing the GCS upload.</p>
+<h3 id="134-add-kml-support">13.4 Add KML support</h3>
+<p>Add <code>fastkml</code> to requirements. In <code>ee_tools.py</code>:</p>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code><span style="color: #007020; font-weight: bold">def</span><span style="color: #BBB"> </span><span style="color: #06287E">kml_to_geojson</span>(kml_text: <span style="color: #007020">str</span>) <span style="color: #666">-&gt;</span> <span style="color: #007020">dict</span>:
+    <span style="color: #007020; font-weight: bold">from</span><span style="color: #BBB"> </span><span style="color: #0E84B5; font-weight: bold">fastkml</span><span style="color: #BBB"> </span><span style="color: #007020; font-weight: bold">import</span> kml
+    k <span style="color: #666">=</span> kml<span style="color: #666">.</span>KML()
+    k<span style="color: #666">.</span>from_string(kml_text)
+    features <span style="color: #666">=</span> [<span style="color: #666">...</span>]   <span style="color: #60A0B0; font-style: italic"># walk the KML tree and emit GeoJSON Features</span>
+    <span style="color: #007020; font-weight: bold">return</span> {<span style="color: #4070A0">&quot;type&quot;</span>: <span style="color: #4070A0">&quot;FeatureCollection&quot;</span>, <span style="color: #4070A0">&quot;features&quot;</span>: features}
+</code></pre></div>
+
+<p>Wire into <code>/upload-asset</code> with a third branch (<code>fname.endswith(".kml")</code>).</p>
+<hr />
+<h2 id="14-appendix-complete-command-history">14. Appendix: Complete Command History</h2>
+<p>Reproducing this project from scratch is essentially this sequence of commands. The actual development session interleaved them with file edits, but the install / configure / run shape is captured here.</p>
+<h3 id="a-install-python-deps">A. Install Python deps</h3>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code>python -m pip install --upgrade earthengine-api mcp python-dotenv
+python -m pip install fastapi <span style="color: #4070A0">&quot;uvicorn[standard]&quot;</span> jinja2 anthropic python-multipart
+python -m pip install google-genai
+python -m pip install openai
+python -m pip install pyshp pyproj
+python -m pip install markdown xhtml2pdf pygments     <span style="color: #60A0B0; font-style: italic"># for building these docs</span>
+</code></pre></div>
+
+<p>Or, equivalently, once you have <code>requirements.txt</code>:</p>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code>python -m pip install --upgrade -r requirements.txt
+</code></pre></div>
+
+<h3 id="b-authenticate-to-earth-engine">B. Authenticate to Earth Engine</h3>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code><span style="color: #60A0B0; font-style: italic"># The earthengine script lives in Python&#39;s Scripts dir:</span>
+&amp; <span style="color: #4070A0">&quot;$env:APPDATA\Python\Python314\Scripts\earthengine.exe&quot;</span> authenticate
+</code></pre></div>
+
+<p>A browser opens; sign in; the credential is saved to <code>~/.config/earthengine/credentials</code>.</p>
+<h3 id="c-create-env">C. Create <code>.env</code></h3>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code><span style="color: #007020">copy </span>.env.example .env
+notepad .env
+</code></pre></div>
+
+<p>Set <code>EE_PROJECT</code> and at least one LLM API key.</p>
+<h3 id="d-wire-mcp-into-claude-code">D. Wire MCP into Claude Code</h3>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code><span style="color: #60A0B0; font-style: italic"># Edit ~/.claude.json — note it&#39;s at ~/.claude.json, NOT ~/.claude/settings.json</span>
+<span style="color: #007020; font-weight: bold">import</span><span style="color: #BBB"> </span><span style="color: #0E84B5; font-weight: bold">json</span><span style="color: #666">,</span><span style="color: #BBB"> </span><span style="color: #0E84B5; font-weight: bold">pathlib</span>
+p <span style="color: #666">=</span> pathlib<span style="color: #666">.</span>Path(<span style="color: #4070A0">r&quot;C:\Users\&lt;you&gt;\.claude.json&quot;</span>)
+d <span style="color: #666">=</span> json<span style="color: #666">.</span>loads(p<span style="color: #666">.</span>read_text(encoding<span style="color: #666">=</span><span style="color: #4070A0">&quot;utf-8&quot;</span>))
+d[<span style="color: #4070A0">&quot;mcpServers&quot;</span>] <span style="color: #666">=</span> {
+    <span style="color: #4070A0">&quot;earth-engine&quot;</span>: {
+        <span style="color: #4070A0">&quot;type&quot;</span>: <span style="color: #4070A0">&quot;stdio&quot;</span>,
+        <span style="color: #4070A0">&quot;command&quot;</span>: <span style="color: #4070A0">r&quot;C:\Python314\python.exe&quot;</span>,
+        <span style="color: #4070A0">&quot;args&quot;</span>: [<span style="color: #4070A0">r&quot;C:\Users\&lt;you&gt;\gee-mcp\server.py&quot;</span>],
+    }
+}
+p<span style="color: #666">.</span>write_text(json<span style="color: #666">.</span>dumps(d, indent<span style="color: #666">=</span><span style="color: #40A070">2</span>), encoding<span style="color: #666">=</span><span style="color: #4070A0">&quot;utf-8&quot;</span>)
+</code></pre></div>
+
+<p>Then reload the VS Code window.</p>
+<h3 id="e-run-the-web-app">E. Run the web app</h3>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code><span style="color: #007020">cd </span>C:\Users\&lt;you&gt;\gee-mcp\webapp
+python -m uvicorn app:app --host 127.0.0.1 --port 8765
+</code></pre></div>
+
+<p>Open http://127.0.0.1:8765.</p>
+<h3 id="f-smoke-test-the-wire-up">F. Smoke-test the wire-up</h3>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code><span style="color: #007020">curl </span>http://127.0.0.1:8765/health
+<span style="color: #007020">curl </span>http://127.0.0.1:8765/models
+<span style="color: #60A0B0; font-style: italic"># Quick chat round-trip:</span>
+<span style="color: #007020">curl </span>-X POST http://127.0.0.1:8765/chat ^
+     -H <span style="color: #4070A0">&quot;Content-Type: application/json&quot;</span> ^
+     -d <span style="color: #4070A0">&quot;{\&quot;</span>message\<span style="color: #4070A0">&quot;: \&quot;</span>list my earth engine assets\<span style="color: #4070A0">&quot;}&quot;</span>
+</code></pre></div>
+
+<h3 id="g-git-setup-and-push">G. Git setup and push</h3>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code><span style="color: #007020">cd </span>C:\Users\&lt;you&gt;\gee-mcp
+
+git init -b main
+git config user.email <span style="color: #4070A0">&quot;you@example.com&quot;</span>
+git config user.name <span style="color: #4070A0">&quot;Your Name&quot;</span>
+
+git add -A
+git status --short              <span style="color: #60A0B0; font-style: italic"># verify .env is NOT staged</span>
+
+git commit -m <span style="color: #4070A0">&quot;Initial commit: GEE MCP server + chat-map web app&quot;</span>
+
+git remote add origin https://github.com/&lt;you&gt;/GEE_MCP_Plugin.git
+git push -u origin main
+</code></pre></div>
+
+<p>The first push triggers Git Credential Manager — a browser window opens for GitHub sign-in. After one click it caches the credential.</p>
+<h3 id="h-build-the-documentation">H. Build the documentation</h3>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code><span style="color: #007020">cd </span>docs
+python build_docs.py            <span style="color: #60A0B0; font-style: italic"># produces setup-guide.html + setup-guide.pdf</span>
+</code></pre></div>
+
+<hr />
+<p><em>End of guide. Open the corresponding <code>setup-guide.html</code> in a browser for hyperlinked navigation, or <code>setup-guide.pdf</code> for a printable copy.</em></p>
+</body>
+</html>
