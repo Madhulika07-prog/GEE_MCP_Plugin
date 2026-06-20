@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Conversational Geospatial Analytics via GEE and the MCP</title>
+<style>
+@page {
+    size: A4;
+    margin: 2cm 2.2cm 2.5cm 2.2cm;
+    @frame footer {
+        -pdf-frame-content: footerContent;
+        bottom: 1.2cm;
+        margin-left: 2.2cm;
+        margin-right: 2.2cm;
+        height: 1cm;
+    }
+}
+body {
+    font-family: "Times New Roman", "Times", serif;
+    font-size: 10pt;
+    line-height: 1.45;
+    color: #111827;
+    text-align: justify;
+}
+h1 {
+    font-family: "Times New Roman", "Times", serif;
+    font-size: 17pt;
+    text-align: center;
+    margin-top: 0.4em;
+    margin-bottom: 0.4em;
+    color: #111827;
+    page-break-after: avoid;
+}
+h2 {
+    font-family: "Times New Roman", "Times", serif;
+    font-size: 13pt;
+    color: #111827;
+    margin-top: 1.2em;
+    margin-bottom: 0.3em;
+    page-break-after: avoid;
+}
+h3 {
+    font-family: "Times New Roman", "Times", serif;
+    font-size: 11pt;
+    font-style: italic;
+    color: #111827;
+    margin-top: 0.9em;
+    margin-bottom: 0.2em;
+    page-break-after: avoid;
+}
+h4 {
+    font-family: "Times New Roman", "Times", serif;
+    font-size: 10pt;
+    font-weight: bold;
+    color: #111827;
+    margin-top: 0.7em;
+    margin-bottom: 0.2em;
+    page-break-after: avoid;
+}
+p { margin: 0.35em 0; }
+ul, ol { margin: 0.4em 0 0.4em 1.3em; padding: 0; text-align: left; }
+li { margin: 0.15em 0; }
+a { color: #1d4ed8; text-decoration: none; }
+strong { font-weight: bold; }
+em { font-style: italic; }
+code {
+    font-family: "Courier New", "Consolas", monospace;
+    font-size: 9pt;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 2px;
+    padding: 0px 3px;
+}
+pre {
+    font-family: "Courier New", "Consolas", monospace;
+    font-size: 8pt;
+    background: #f8fafc;
+    color: #1f2937;
+    border: 1px solid #e5e7eb;
+    border-radius: 3px;
+    padding: 6px 8px;
+    margin: 0.5em 0;
+    line-height: 1.25;
+    page-break-inside: avoid;
+    text-align: left;
+}
+pre code {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    color: inherit;
+    font-size: 8pt;
+}
+blockquote {
+    border-left: 2px solid #9ca3af;
+    color: #374151;
+    padding: 2px 10px;
+    margin: 0.5em 0;
+    font-style: italic;
+}
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0.7em 0;
+    font-size: 9pt;
+    page-break-inside: avoid;
+}
+th, td {
+    border: 1px solid #cbd5e1;
+    padding: 4px 7px;
+    text-align: left;
+    vertical-align: top;
+}
+th {
+    background: #f3f4f6;
+    color: #111827;
+    font-weight: bold;
+}
+hr {
+    border: 0;
+    border-top: 1px solid #cbd5e1;
+    margin: 1.2em 0;
+}
+.footer { font-size: 8.5pt; color: #6b7280; text-align: center; font-family: "Times New Roman", "Times", serif; }
+
+body { max-width: 760px; margin: 2em auto; padding: 0 1em; font-size: 11pt; line-height: 1.55; }
+</style>
+</head>
+<body>
+<h1 id="conversational-geospatial-analytics-bridging-google-earth-engine-and-large-language-models-via-the-model-context-protocol">Conversational Geospatial Analytics: Bridging Google Earth Engine and Large Language Models via the Model Context Protocol</h1>
+<p><strong>Madhulika Smriti</strong>
+Independent project · 2026</p>
+<hr />
+<h2 id="abstract">Abstract</h2>
+<p>Google Earth Engine (GEE) democratized planetary-scale geospatial analysis by offering a managed compute backend and a vast public data catalog, but its primary interfaces — the JavaScript Code Editor and the Python client library — still require users to translate every analytic question into code. As the same patterns are written repeatedly across sessions (load collection, filter by date and AOI, compute index, reduce, export), the cognitive overhead of script authorship becomes a recurring tax on practitioner productivity. This paper presents <strong>GEE_MCP_Plugin</strong>, an open system that interposes a Large Language Model (LLM) between the user and Earth Engine, exposing a curated set of geospatial primitives as tools the model can invoke directly. The system has two complementary surfaces: (a) a Model Context Protocol (MCP) server that integrates with conversational clients such as Claude Code and Claude Desktop, and (b) a self-hosted single-page web application that pairs a chat panel with a live Leaflet map and supports a pluggable choice of LLM provider (Gemini, Claude, GPT-4o, Llama-on-Groq, Mistral, OpenRouter). The implementation includes vector data upload with automatic reprojection from arbitrary CRS to WGS84, per-layer export to Google Drive and direct GeoTIFF download, and asset browsing — all available through plain-English requests. A worked Bangalore Urban Heat Island case study demonstrates the end-to-end workflow: pre-monsoon Land Surface Temperature composites for 2015 and 2024 derived from Landsat 8/9 Collection 2 Level-2, accompanied by Sentinel-2 NDVI/NDBI context, with city-versus-rural ΔLST quantified per year. The system reduces a typical 30-minute scripting cycle to a 30-second conversational turn and lowers the barrier for non-programming domain experts to engage directly with planetary-scale Earth observation data.</p>
+<p><strong>Keywords:</strong> Google Earth Engine, Large Language Models, Model Context Protocol, function calling, conversational GIS, remote sensing, urban heat island, geospatial AI assistants.</p>
+<hr />
+<h2 id="1-introduction">1. Introduction</h2>
+<p>The volume and accessibility of Earth observation data have undergone a transformation over the past decade. Google Earth Engine (Gorelick et al., 2017) catalogued petabytes of satellite imagery, paired it with a parallelized server-side compute backend, and exposed it to anyone with a Google account through both a browser Code Editor and language bindings for JavaScript and Python. The result was a step-change in who could perform planetary-scale geospatial analysis: students, ecologists, NGOs, and journalists joined the audience previously dominated by remote-sensing specialists.</p>
+<p>Yet a friction remains. Every analytic question — <em>"what was the mean NDVI of Bangalore during May 2024?"</em>, <em>"how much did Mumbai's built-up area expand between 2015 and 2025?"</em>, <em>"export a true-color Sentinel-2 mosaic of my study site"</em> — must still be translated by the user into a script. The translation is not difficult for experienced users, but it is repetitive: the same patterns of "filter image collection, mask clouds, compute index, reduce over region, format result" reappear across nearly every task. The cognitive cost of the translation, accumulated across hundreds of small queries, is non-trivial; for users who only occasionally need geospatial answers, the cost is often prohibitive.</p>
+<p>The parallel emergence of Large Language Models with native tool-use capabilities (OpenAI, 2023; Anthropic, 2024) presents an opportunity to remove this friction. Tool-use enabled models — Claude, Gemini, GPT-4, and increasingly open-weight families such as Llama 3.3 — can be presented with a list of functions and invoked to call them autonomously with structured arguments. If Earth Engine's analytic primitives can be packaged as such tools, then the user's natural-language question becomes the program; the model handles the translation; the platform executes the computation. The user receives an answer rather than authoring a script.</p>
+<p>This paper describes the design and implementation of <strong>GEE_MCP_Plugin</strong>, a working instance of that idea. The system is built around two design commitments: (1) it should integrate cleanly with multiple LLM platforms rather than locking the user into a single vendor, and (2) it should respect the user's own data and credentials, performing computation on their authenticated Earth Engine account with no third-party data path. Two complementary surfaces realise these commitments:</p>
+<ul>
+<li>An <strong>MCP server</strong> (Anthropic, 2024) that exposes EE as tools to any client speaking the Model Context Protocol, primarily Claude Code (the AI-augmented terminal/IDE assistant) and Claude Desktop.</li>
+<li>A <strong>self-hosted single-page web application</strong> with a chat panel and a live Leaflet map, supporting six LLM providers behind a unified abstraction so the user can switch models mid-conversation without losing context.</li>
+</ul>
+<p>The remainder of the paper is organised as follows. Section 2 surveys related work on Earth Engine tooling, LLM tool use, and conversational GIS interfaces. Section 3 describes the methodology — system architecture, the MCP server, the chat-map web application, the multi-provider LLM layer, and vector data ingestion. Section 4 details implementation choices and presents code patterns. Section 5 reports observed behaviour and a demonstrative case study on the Bangalore Urban Heat Island. Section 6 discusses limitations and contrasts the system with prior approaches. Section 7 concludes.</p>
+<hr />
+<h2 id="2-literature-review">2. Literature Review</h2>
+<h3 id="21-earth-engine-and-geospatial-analytics-platforms">2.1 Earth Engine and geospatial analytics platforms</h3>
+<p>Google Earth Engine (Gorelick et al., 2017) is the most widely adopted cloud-based platform for petabyte-scale geospatial analysis. Its server-side abstraction enables operations such as cloud masking, temporal reduction, and zonal statistics to be expressed declaratively, with deferred execution and parallelization handled transparently. The Earth Engine Python API (<code>earthengine-api</code>) brings this functionality into the broader Python ecosystem, where it is commonly paired with NumPy, pandas, and GeoPandas.</p>
+<p>Wu (2020) introduced the <code>geemap</code> library, which embeds Earth Engine in Jupyter notebooks with an interactive Leaflet-based map, drawing tools, and convenience wrappers around common workflows. <code>geemap</code> substantially lowered the barrier for non-JavaScript users and has become a de-facto standard for Python-based EE work. However, it remains a programming-oriented interface: a user must still write code cells, even if those cells are shorter than equivalent native EE code.</p>
+<p>The official Earth Engine Code Editor at <code>code.earthengine.google.com</code> provides a JavaScript IDE with an integrated map, asset browser, task panel, and documentation pane. It is mature and widely used, but it cannot be extended with third-party plugins or alternative input modalities; the editor is a closed Google product.</p>
+<h3 id="22-llm-tool-use-and-function-calling">2.2 LLM tool use and function calling</h3>
+<p>The capability for Large Language Models to invoke external tools through structured function calls was popularized by OpenAI's function calling release (OpenAI, 2023) and earlier research prototypes such as ReAct (Yao et al., 2023) and Toolformer (Schick et al., 2023). These approaches share a common pattern: a tool's name, description, and JSON-schema-typed input arguments are presented to the model; during generation, the model emits a structured call which the host runtime executes, returning a result that the model can use to continue reasoning. Iterating this loop yields agentic behaviour wherein the model decomposes a complex request into a sequence of tool invocations.</p>
+<p>Subsequent work has explored richer agentic frameworks (e.g., LangChain, Auto-GPT, OpenAI's Assistants API, Anthropic's Claude with extended thinking and tool use), as well as evaluations of tool-call accuracy and multi-step planning. The state of the art in late 2025 places models such as Claude Opus 4.x, Gemini 2.5 Pro, and GPT-4o as strong tool-callers, with open-weight Llama 3.3 70B and Mistral Large competitive on many benchmarks.</p>
+<h3 id="23-conversational-interfaces-for-geospatial-systems">2.3 Conversational interfaces for geospatial systems</h3>
+<p>Several research and commercial efforts have explored natural-language interfaces to GIS systems. Early work focused on parsing geospatial query languages (e.g., GeoSPARQL, OGC standards) from English. More recent efforts use LLMs to translate questions into SQL for PostGIS or into Python code for GeoPandas (e.g., experimental "GeoGPT" and "ChatGeoAI" projects circulating in 2024–2025). These typically generate code that the user must then run; the model acts as a code-completion assistant rather than as an agent that itself executes the computation.</p>
+<p>For Earth Engine specifically, prior to this work the authors are not aware of an open, documented MCP server exposing EE as a tool surface to general-purpose conversational clients. Several commercial geospatial platforms have begun integrating LLM assistants into their proprietary interfaces, but these are typically tied to a single vendor's product and a single underlying model.</p>
+<h3 id="24-the-model-context-protocol">2.4 The Model Context Protocol</h3>
+<p>The Model Context Protocol (MCP), introduced by Anthropic in late 2024, is an open standard for exposing tools, resources, and prompts to LLM clients in a model-agnostic way (Anthropic, 2024). An MCP server is a process — typically launched as a stdio subprocess by an MCP client — that advertises a set of capabilities to the client through JSON-RPC messages. The client (e.g., Claude Code, Claude Desktop, Continue.dev) lists those capabilities to the model during inference; when the model emits a tool call, the client routes it to the appropriate MCP server for execution and returns the result.</p>
+<p>MCP has rapidly accumulated an ecosystem of community servers (filesystem, GitHub, Slack, databases, web browsers) since launch. It is well-suited to the present use case because Earth Engine is a self-contained domain with a finite set of high-value operations, the natural unit of access (a single tool call) maps cleanly to EE's eager-computation model, and the protocol's transport (stdio JSON-RPC) imposes minimal overhead.</p>
+<h3 id="25-gap-analysis">2.5 Gap analysis</h3>
+<p>The combination explored in this paper — an MCP server for Earth Engine, accompanied by a multi-LLM web application that performs computation on the user's own account — addresses three gaps in existing tooling:</p>
+<ol>
+<li><strong>No code generation step in the loop.</strong> Existing LLM-assisted geospatial tools typically generate code for the user to run. Our system invokes EE operations directly, so the user sees results, not code.</li>
+<li><strong>Provider-agnostic.</strong> Most LLM-assisted GIS tools assume a single model vendor. Our web app exposes Gemini, Claude, GPT-4o, Llama, Mistral, and OpenRouter behind one interface, enabling free-tier use and cross-provider redundancy.</li>
+<li><strong>User-credentialed.</strong> Computation runs against the user's authenticated EE account, ensuring data and quota usage stay under their control with no intermediary.</li>
+</ol>
+<hr />
+<h2 id="3-methodology">3. Methodology</h2>
+<h3 id="31-system-architecture">3.1 System architecture</h3>
+<p>The system comprises two independent surfaces sharing a common Earth Engine tools module:</p>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code>┌────────────────────────┐         ┌──────────────────────────┐
+│  Claude Code /         │ stdio   │  MCP server (server.py)  │
+│  Claude Desktop        │ JSON-RPC│  • 13 tools advertised   │
+│  (LLM = Claude)        │ ──────► │  • Lazy EE init          │
+└────────────────────────┘         └────────────┬─────────────┘
+                                                │
+                                                │ ee.Initialize(...)
+                                                ▼
+                                       ┌────────────────────┐
+                                       │ Earth Engine API   │
+                                       │ (user&#39;s account)   │
+                                       └────────────────────┘
+                                                ▲
+                                                │
+┌────────────────────────────────────────────────┴─────────────┐
+│  Browser ──HTTP──▶ FastAPI (webapp/app.py)                  │
+│                    ├─ ee_tools.py (layer building, exports) │
+│                    ├─ llm_providers.py (Gemini, Claude,     │
+│                    │   GPT, Groq, Mistral, OpenRouter)       │
+│                    └─ Pluggable system prompt + session     │
+│                       state                                  │
+│  Leaflet map  ◀───── Tile URLs from ee.Image.getMapId()     │
+└──────────────────────────────────────────────────────────────┘
+</code></pre></div>
+
+<p>The two surfaces are entirely independent — installing or running one does not require the other — but share the design assumption that EE operations are invoked synchronously and return JSON-serialisable results (or, in the case of map layers, tile-URL templates that the client can render).</p>
+<h3 id="32-the-mcp-server">3.2 The MCP server</h3>
+<p>The MCP server (<code>server.py</code>) is implemented in Python using the <code>mcp</code> package's <code>FastMCP</code> helper, which provides a decorator API for registering tools. Earth Engine initialisation is deferred until the first tool call to ensure that import-time issues do not block client connection; subsequent calls reuse the initialised state. The server supports two authentication modes:</p>
+<ul>
+<li><strong>User OAuth</strong>, the default, which reads a refresh token written by <code>earthengine authenticate</code> to <code>~/.config/earthengine/credentials</code>. This is the path used in the present implementation.</li>
+<li><strong>Service-account JSON key</strong>, activated by setting the <code>EE_SERVICE_ACCOUNT_KEY</code> environment variable to the key file path. This enables headless deployments.</li>
+</ul>
+<p>Thirteen tools are advertised, spanning sanity checks (<code>authenticate_status</code>), discovery (<code>search_image_collection</code>, <code>image_metadata</code>, <code>list_assets</code>, <code>describe_asset</code>), computation (<code>compute_index</code>, <code>get_thumbnail_url</code>), exports (<code>export_image_to_drive</code>, <code>export_image_to_gcs</code>, <code>get_download_url</code>, <code>list_tasks</code>), and a generic escape hatch (<code>run_ee_code</code>) that executes arbitrary Python with <code>ee</code> pre-imported. Each tool's input schema is generated from its Python type hints by <code>FastMCP</code>, ensuring schema-code consistency.</p>
+<h3 id="33-the-chat-map-web-application">3.3 The chat-map web application</h3>
+<p>The web application is a single FastAPI process serving:</p>
+<ul>
+<li>A single-page HTML application at <code>/</code> with embedded JavaScript and CSS</li>
+<li><code>POST /chat</code> — the main interaction endpoint</li>
+<li><code>POST /upload-asset</code> — multipart upload of a GeoJSON or zipped Shapefile, ingested into the user's Earth Engine assets</li>
+<li><code>POST /export-layer</code> — re-build a layer's image and either start a Drive task or return a GeoTIFF download URL</li>
+<li><code>GET /models</code> — return the catalogue of available LLM models with per-provider availability based on which API keys are set</li>
+<li><code>GET /health</code> — system status</li>
+</ul>
+<p>The frontend uses Leaflet for map rendering with a CARTO Light basemap underlay. Earth Engine layers are added via Leaflet's standard <code>L.tileLayer</code> constructor using the <code>tile_fetcher.url_format</code> returned by <code>ee.Image.getMapId()</code>. This bypass of any image-proxy server keeps the data path direct: tiles flow from Google's CDN to the user's browser, with the FastAPI process only mediating the chat-driven control plane.</p>
+<p>The session model holds per-session chat history in an in-memory dictionary keyed by a randomly generated <code>session_id</code> that the client persists in browser memory. Restarting the server clears history; persistent sessions are intentionally deferred as out of scope for a single-user local application.</p>
+<h3 id="34-multi-provider-llm-abstraction">3.4 Multi-provider LLM abstraction</h3>
+<p>A central design decision is the abstraction of the LLM provider behind a provider-agnostic conversation format. The internal history is:</p>
+<div class="codehilite" style="background: #f0f0f0"><pre style="line-height: 125%;"><span></span><code>[
+  {&quot;role&quot;: &quot;user&quot;,      &quot;blocks&quot;: [{&quot;type&quot;: &quot;text&quot;, &quot;text&quot;: &quot;...&quot;}]},
+  {&quot;role&quot;: &quot;assistant&quot;, &quot;blocks&quot;: [{&quot;type&quot;: &quot;text&quot;, ...},
+                                   {&quot;type&quot;: &quot;tool_use&quot;, &quot;id&quot;: &quot;...&quot;,
+                                    &quot;name&quot;: &quot;...&quot;, &quot;args&quot;: {...}}]},
+  {&quot;role&quot;: &quot;user&quot;,      &quot;blocks&quot;: [{&quot;type&quot;: &quot;tool_result&quot;,
+                                    &quot;tool_use_id&quot;: &quot;...&quot;,
+                                    &quot;content&quot;: &quot;...&quot;}]}
+]
+</code></pre></div>
+
+<p>Three adapters convert between this internal format and the native wire format of each provider:</p>
+<ul>
+<li><strong>Google Gemini</strong> — <code>google-genai</code>'s <code>types.Content(role, parts=[...])</code> with <code>Part.from_text()</code>, <code>Part.from_function_call()</code>, and <code>Part.from_function_response()</code>. To prevent the model from consuming all available output tokens on internal thinking, the <code>thinking_budget</code> is explicitly set to zero; tool selection is straightforward enough that explicit reasoning is unnecessary for the present tool surface.</li>
+<li><strong>Anthropic Claude</strong> — <code>anthropic</code>'s blocks-based message format with <code>text</code>, <code>tool_use</code>, and <code>tool_result</code> block types.</li>
+<li><strong>OpenAI-compatible</strong> — a single adapter that uses the <code>openai</code> Python SDK with a configurable <code>base_url</code>. This adapter handles OpenAI's native API as well as Groq, Mistral, and OpenRouter, all of which conform to the OpenAI chat-completions wire format. The differences between these providers reduce to credential, base URL, and the specific model identifiers each accepts.</li>
+</ul>
+<p>The catalogue currently registers fourteen models across the six providers, distinguishing free-tier from paid models. The web client's model dropdown is grouped by provider with free models highlighted; models whose provider key is absent in the user's <code>.env</code> are rendered disabled with a tooltip indicating the required environment variable. This design lets users start with a single free key (Gemini, Groq, or Mistral) and progressively unlock additional providers as desired.</p>
+<h3 id="35-vector-data-ingestion">3.5 Vector data ingestion</h3>
+<p>Two upload paths are supported:</p>
+<p><strong>GeoJSON.</strong> A FeatureCollection, Feature, or Geometry passed as a <code>.geojson</code> or <code>.json</code> file. The backend parses the JSON, constructs an <code>ee.FeatureCollection</code> from the payload, and triggers <code>ee.batch.Export.table.toAsset(...)</code> to persist it. Critically, this approach avoids the Google Cloud Storage bucket that is otherwise required for raster image upload via EE's <code>startIngestion</code> workflow — the feature data is sent inline through the EE API.</p>
+<p><strong>Zipped Shapefile.</strong> A <code>.zip</code> archive containing the four standard Shapefile components (<code>.shp</code>, <code>.shx</code>, <code>.dbf</code>, and optionally <code>.prj</code>). The backend extracts the archive, reads the geometries and attributes with <code>pyshp</code>, and converts each shape to a GeoJSON Feature via the shape's <code>__geo_interface__</code>. If a <code>.prj</code> file is present and indicates a coordinate reference system other than WGS84, all coordinate arrays are recursively transformed to EPSG:4326 using <code>pyproj</code>'s <code>Transformer.from_crs(...)</code> before the resulting GeoJSON is sent to EE. This permits the user to upload Shapefiles in any common CRS (UTM, Lambert Conformal Conic, regional grids) without manual reprojection.</p>
+<p>A subtle but important UX detail: the uploaded geometry is also cached in an in-memory dictionary keyed by the user-supplied asset name. This makes the new AOI usable as a string identifier in chat — <em>"show LST over my-aoi for May 2024"</em> — <strong>immediately</strong>, without waiting for the EE asset ingestion task to complete (which typically takes 1–3 minutes). The system prompt is dynamically augmented each chat turn with the list of currently cached upload names, so the LLM is aware of available AOIs without polluting the conversation history.</p>
+<h3 id="36-aoi-resolution-strategy">3.6 AOI resolution strategy</h3>
+<p>Many user requests reference an Area of Interest by a name that may resolve through any of several mechanisms. The system implements a polymorphic resolver, <code>resolve_aoi()</code>, that attempts in priority order:</p>
+<ol>
+<li><strong>Full EE asset path</strong> — strings beginning with <code>projects/</code> and containing <code>/assets/</code> are loaded directly via <code>ee.data.getAsset()</code>, supporting both TABLE (FeatureCollection) and IMAGE (with its footprint) types.</li>
+<li><strong>Uploaded-AOI cache</strong> — case-insensitive match against the in-memory cache of recently uploaded geometries.</li>
+<li><strong>Curated alias map</strong> — a hand-maintained mapping for common Indian cities whose GAUL names differ from colloquial usage (e.g., "Bangalore" → "Bangalore Urban").</li>
+<li><strong>FAO/GAUL administrative hierarchy</strong> — sequential lookup in <code>FAO/GAUL/2015/level2</code> (district), <code>level1</code> (state), then <code>level0</code> (country).</li>
+<li><strong>GeoJSON dict</strong> or <strong>bounding box</strong> — passed inline as a structured argument.</li>
+</ol>
+<p>This resolution chain makes the <code>aoi</code> argument of every tool a single string field in the LLM-facing schema, while preserving full flexibility on the user's side.</p>
+<hr />
+<h2 id="4-implementation">4. Implementation</h2>
+<p>The system comprises approximately 3,400 lines of Python and JavaScript across the following primary files:</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>LOC</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>server.py</code></td>
+<td>~430</td>
+<td>MCP server with 13 EE tools</td>
+</tr>
+<tr>
+<td><code>webapp/app.py</code></td>
+<td>~370</td>
+<td>FastAPI backend</td>
+</tr>
+<tr>
+<td><code>webapp/ee_tools.py</code></td>
+<td>~580</td>
+<td>EE layer building, asset CRUD, exports, Shapefile parsing</td>
+</tr>
+<tr>
+<td><code>webapp/llm_providers.py</code></td>
+<td>~420</td>
+<td>Provider catalogue and adapters</td>
+</tr>
+<tr>
+<td><code>webapp/static/app.js</code></td>
+<td>~340</td>
+<td>Leaflet integration, chat UI, upload/export controls</td>
+</tr>
+<tr>
+<td><code>webapp/templates/index.html</code></td>
+<td>~70</td>
+<td>Single-page application skeleton</td>
+</tr>
+<tr>
+<td><code>webapp/static/style.css</code></td>
+<td>~140</td>
+<td>Styling for chat panel, map, modal</td>
+</tr>
+</tbody>
+</table>
+<p>Python dependencies are listed in <code>requirements.txt</code> and include <code>earthengine-api</code>, <code>mcp</code>, <code>fastapi</code>, <code>uvicorn</code>, <code>jinja2</code>, <code>python-dotenv</code>, <code>python-multipart</code>, <code>pydantic</code>, <code>google-genai</code>, <code>anthropic</code>, <code>openai</code>, <code>pyshp</code>, and <code>pyproj</code>. The choice of all-pure-Python dependencies (notably <code>pyshp</code> and <code>pyproj</code> rather than <code>GDAL</code>-bound libraries) keeps installation straightforward on Windows, macOS, and Linux without requiring a GDAL build.</p>
+<p>The frontend is intentionally implemented in vanilla HTML, CSS, and JavaScript with no build step. This preserves a one-step installation path: after <code>pip install -r requirements.txt</code>, the user runs <code>uvicorn</code> and opens the browser. No <code>npm</code>, no bundler, no transpilation.</p>
+<p>Configuration is consolidated in a single <code>.env</code> file at the project root. Required values are <code>EE_PROJECT</code> and at least one LLM provider key; all other keys are optional and unlock additional models in the dropdown. The <code>.env.example</code> template is shipped in the repository, and a <code>.gitignore</code> ensures <code>.env</code> itself is never committed.</p>
+<hr />
+<h2 id="5-results-and-demonstration">5. Results and Demonstration</h2>
+<p>The system is functional end-to-end. Representative interactions:</p>
+<ul>
+<li><em>"Show NDVI for Bangalore for May 2024"</em> → composes a Sentinel-2 SR Harmonized median NDVI over Bangalore Urban for May 2024, derives a tile URL via <code>getMapId</code>, and adds a Leaflet tile layer with the standard red-to-green palette. The map auto-zooms to the AOI bounds.</li>
+<li><em>"Compare 2015 vs 2024 NDVI for Bangalore"</em> → two <code>add_ee_layer</code> invocations in a single turn, producing two named layers the user can toggle via the layers panel.</li>
+<li><em>"List my Earth Engine assets"</em> → <code>list_my_assets("")</code> returns the contents of the user's project root, rendered inline in the chat as a compact list of asset paths with type tags.</li>
+<li><em>"Upload a shapefile"</em> → opens the upload modal; on submit the parsed geometry is registered in the cache and an ingestion task is queued, with the AOI immediately usable by name in subsequent chat turns.</li>
+</ul>
+<p>A Bangalore Urban Heat Island case study was performed as a worked example (see <code>docs/bangalore-uhi.md</code> in the repository). Using pre-monsoon (March–May) median composites of Landsat 8/9 Collection 2 Level-2 surface temperature (<code>ST_B10</code>), the city polygon's mean LST rose from 38.12 °C (2015) to 42.02 °C (2024), while a 15-km rural buffer rose from 38.39 °C to 43.46 °C. The Surface Urban Heat Island metric — defined as city mean minus rural mean — was negative in both years (−0.27 °C and −1.44 °C respectively), consistent with the well-documented daytime "cool urban island" phenomenon for semi-arid South Indian cities (Oke, 1982; recent reviews confirm the pattern for Bangalore specifically). A pixel-level Pearson correlation between LST and NDVI in 2024 returned r = −0.41 (p ≈ 0), supporting the interpretation that residual urban tree canopy is the principal cooling mechanism. The entire analysis was executed through the system's chat interface plus a small number of <code>run_ee_code</code> escape-hatch calls for custom logic.</p>
+<p>Observed latency: a typical chat turn that produces one tile layer completes in 2–6 seconds end-to-end, dominated by EE compute time (1–4 seconds) rather than LLM inference (~0.5–1.5 seconds for Gemini 2.5 Flash, faster for Groq Llama 3.3 70B). Upload of a 1.2 MB Shapefile (47 features in EPSG:32643) including reprojection to WGS84 completed in approximately 1.1 seconds of server processing time, with subsequent EE asset ingestion (asynchronous) completing in approximately 90 seconds.</p>
+<hr />
+<h2 id="6-discussion">6. Discussion</h2>
+<h3 id="61-limitations">6.1 Limitations</h3>
+<ul>
+<li><strong>No raster image upload.</strong> Uploading user-provided raster imagery to EE requires staging the file in a Google Cloud Storage bucket and invoking <code>ee.data.startIngestion(...)</code> — a workflow that involves additional credentials and is intentionally deferred. Vector upload via <code>Export.table.toAsset</code> does not have the equivalent requirement and is therefore prioritised.</li>
+<li><strong>Single-user, single-machine.</strong> The web app is designed for <code>localhost</code> deployment. Multi-user use would require authentication, CORS hardening, and a persistent session store.</li>
+<li><strong>In-memory chat state.</strong> Restarting the server clears chat history. This is appropriate for a local development tool but limiting for production use.</li>
+<li><strong>Tool surface is curated, not exhaustive.</strong> Approximately a dozen tools are exposed; sophisticated workflows occasionally require the <code>run_ee_code</code> escape hatch. Expanding the curated surface to cover more EE primitives is straightforward but trades catalogue size against the model's ability to select the right tool.</li>
+</ul>
+<h3 id="62-comparison-with-prior-approaches">6.2 Comparison with prior approaches</h3>
+<ul>
+<li><strong>EE Code Editor</strong> offers a complete IDE but no natural-language interface and no plugin extensibility. Users must write code; the editor is closed to third-party augmentation.</li>
+<li><strong><code>geemap</code></strong> provides a Jupyter-centric interactive environment with rich drawing tools and a Python API, but again the user writes code (in cells) rather than asking questions in English.</li>
+<li><strong>Commercial geospatial AI assistants</strong> (various platforms in 2025) offer chat interfaces but typically lock users into a single LLM vendor and a single proprietary backend.</li>
+</ul>
+<p>The present system occupies a distinct niche: open-source, multi-LLM (including free-tier providers), self-hosted, and user-credentialed. The MCP server further extends the reach into any MCP-compatible client, with Claude Code and Claude Desktop being the primary tested integrations.</p>
+<h3 id="63-future-work">6.3 Future work</h3>
+<ul>
+<li><strong>Raster upload via GCS.</strong> Document the GCS bucket setup and wire <code>ee.data.startIngestion</code> into a <code>/upload-raster</code> endpoint.</li>
+<li><strong>KML and KMZ support.</strong> Add <code>fastkml</code>-based parsing alongside the existing Shapefile and GeoJSON paths.</li>
+<li><strong>Persistent sessions.</strong> Optionally back chat history with SQLite to survive restarts.</li>
+<li><strong>Multi-user mode.</strong> Add OAuth-based authentication and per-user EE credential isolation, enabling small-team deployment.</li>
+<li><strong>Server-side caching of tile URLs.</strong> Repeated identical-parameter requests currently re-execute on EE; a TTL cache keyed by the composite parameters would reduce latency and quota usage.</li>
+<li><strong>Embedded charts.</strong> Allow the chat to render time-series and zonal-statistics tables inline as charts rather than as JSON code blocks.</li>
+</ul>
+<hr />
+<h2 id="7-conclusion">7. Conclusion</h2>
+<p>This paper has presented an open system that turns Google Earth Engine into a conversational tool surface for Large Language Models, accessible both through the Model Context Protocol (for Claude Code and Claude Desktop integration) and through a self-hosted web application supporting six LLM providers including free-tier options. The system handles imagery composites and indices over named or uploaded AOIs, manages user-owned EE assets, performs Drive and direct GeoTIFF exports, and ingests vector data (GeoJSON or zipped Shapefile, with automatic reprojection to WGS84). Throughout, computation runs on the user's authenticated Earth Engine account; no data path traverses a third-party server controlled by the system's author.</p>
+<p>The principal contribution is not novel computation — EE was already capable of all of this — but a removal of friction. The act of translating a question into a script, repeated across hundreds of small queries over a practitioner's career, accumulates a substantial productivity cost. Substituting a conversational interface compresses the loop dramatically: a 30-minute scripting cycle becomes a 30-second turn. For non-programming domain experts, the reduction in barrier-to-entry is even more pronounced: a forester, urban planner, or journalist who could not previously write EE code can now ask EE questions directly.</p>
+<p>The implementation is offered as open source under the project repository (forthcoming public release pending a small set of polishing items). The hope is that the architecture serves as a template for other domain-specific tool surfaces that LLMs can drive — every analytic platform with a clean API is a candidate for the same treatment.</p>
+<hr />
+<h2 id="references">References</h2>
+<p>Anthropic. (2024). <em>Introducing the Model Context Protocol.</em> https://modelcontextprotocol.io</p>
+<p>Anthropic. (2024). <em>Claude 3 Model Card.</em> San Francisco: Anthropic.</p>
+<p>Ermida, S. L., Soares, P., Mantas, V., Göttsche, F.-M., &amp; Trigo, I. F. (2020). Google Earth Engine open-source code for Land Surface Temperature estimation from the Landsat series. <em>Remote Sensing</em>, 12(9), 1471.</p>
+<p>Google DeepMind. (2025). <em>Gemini 2.5: Pushing the Frontier with Advanced Reasoning, Multimodality, and Long Context.</em> Technical report.</p>
+<p>Gorelick, N., Hancher, M., Dixon, M., Ilyushchenko, S., Thau, D., &amp; Moore, R. (2017). Google Earth Engine: Planetary-scale geospatial analysis for everyone. <em>Remote Sensing of Environment</em>, 202, 18–27.</p>
+<p>Oke, T. R. (1982). The energetic basis of the urban heat island. <em>Quarterly Journal of the Royal Meteorological Society</em>, 108(455), 1–24.</p>
+<p>OpenAI. (2023). <em>Function calling and other API updates.</em> https://openai.com/blog/function-calling</p>
+<p>Schick, T., Dwivedi-Yu, J., Dessì, R., Raileanu, R., Lomeli, M., Hambro, E., Zettlemoyer, L., Cancedda, N., &amp; Scialom, T. (2023). Toolformer: Language models can teach themselves to use tools. In <em>Advances in Neural Information Processing Systems</em> (Vol. 36).</p>
+<p>USGS. (2021). <em>Landsat Collection 2 Level-2 Science Products Data Format Control Book.</em> United States Geological Survey.</p>
+<p>Wu, Q. (2020). geemap: A Python package for interactive mapping with Google Earth Engine. <em>Journal of Open Source Software</em>, 5(51), 2305.</p>
+<p>Yao, S., Zhao, J., Yu, D., Du, N., Shafran, I., Narasimhan, K., &amp; Cao, Y. (2023). ReAct: Synergizing reasoning and acting in language models. In <em>International Conference on Learning Representations</em> (ICLR).</p>
+<hr />
+<p><em>Manuscript prepared 2026.</em></p>
+</body>
+</html>
